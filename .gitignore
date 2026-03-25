@@ -19,3 +19,27 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+# Maven
+backend/target/
+*.class
+
+# Gradle
+backend/.gradle/
+backend/build/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# IDEs
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
