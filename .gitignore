@@ -24,6 +24,10 @@ gradle-app.setting
 backend/target/
 *.class
 
+# Gradle
+backend/.gradle/
+backend/build/
+
 # Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/

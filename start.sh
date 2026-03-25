@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parking App Startup Script
-# Starts the Spring Boot backend and then the React frontend
+# Starts the Spring Boot backend (Java 25 / Gradle 9) and then the React frontend
 
 set -e
 
@@ -9,8 +9,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
+# Java 25 is required for the backend
+export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/temurin-25-jdk-amd64}"
+export PATH="$JAVA_HOME/bin:$PATH"
+
 echo "============================================"
 echo "  Parking App - Starting Services"
+echo "  Java: $(java -version 2>&1 | head -1)"
 echo "============================================"
 
 # --- Backend ---
@@ -19,10 +24,10 @@ echo "[1/2] Building and starting the Spring Boot backend..."
 cd "$BACKEND_DIR"
 
 echo "  Compiling backend..."
-mvn -q clean package -DskipTests
+./gradlew clean build -x test -q
 echo "  Build successful. Starting backend..."
 
-mvn -q spring-boot:run &
+./gradlew bootRun -q &
 BACKEND_PID=$!
 echo "  Backend PID: $BACKEND_PID"
 
