@@ -53,6 +53,14 @@ public class UserService {
 
 
     @Transactional(readOnly = true)
+    public UserResponse getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
+
+    @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
         return userRepository.findById(id)
                 .map(this::mapToResponse)

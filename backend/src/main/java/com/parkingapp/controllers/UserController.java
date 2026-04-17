@@ -5,9 +5,8 @@ import com.parkingapp.service.UserService.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 
 @RestController
@@ -27,8 +26,8 @@ public class UserController {
         return ResponseEntity.ok(userService.login(request));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable UUID id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getMe(Authentication authentication) {
+        return ResponseEntity.ok(userService.getUserByEmail(authentication.getName()));
     }
 }

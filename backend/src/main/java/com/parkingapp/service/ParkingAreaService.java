@@ -117,7 +117,7 @@ public class ParkingAreaService {
                 slot.getSlotIdentifier(),
                 slot.getStatus().name(),
                 slot.getSizeCategory() != null ? slot.getSizeCategory().name() : null,
-                slot.getHasEvCharging());
+                slot.isHasEvCharging());
     }
 
     public record ParkingAreaRequest(
