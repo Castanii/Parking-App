@@ -22,6 +22,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+    defer-datasource-initialization: true
   sql:
     init:
       mode: always
@@ -35,3 +36,7 @@ server:
 logging:
   level:
     root: INFO
+app:
+  jwt:
+    secret: a7c2bf97cb91d45e48e5e3fd9dfdcbae34435cc36700b7189126f3efd893e523
+    expiration-ms: 86400000
