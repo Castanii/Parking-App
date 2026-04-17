@@ -21,7 +21,7 @@ public class User {
     @Column(unique = true, nullable = false, name = "email")
     private String email;
 
-    @Column(unique = true, nullable = false, name = "password_hash")
+    @Column(nullable = false, name = "password_hash")
     private String passwordHash;
 
     @CreationTimestamp
