@@ -34,7 +34,7 @@ public class ParkingSlot {
     private SizeCategory sizeCategory;
 
     @Column(name = "has_ev_charging", nullable = false)
-    private Boolean hasEvCharging;
+    private boolean hasEvCharging;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parking_area_id", nullable = false)
