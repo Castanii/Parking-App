@@ -1,14 +1,13 @@
 package com.parkingapp.service;
 
 import com.parkingapp.domain.Payment;
-import com.parkingapp.domain.PaymentStatus;
+import com.parkingapp.domain.enums.PaymentStatus;
 import com.parkingapp.domain.Ticket;
 import com.parkingapp.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Currency;
 
 @Service
 public class PaymentService {

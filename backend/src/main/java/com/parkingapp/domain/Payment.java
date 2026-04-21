@@ -1,5 +1,6 @@
 package com.parkingapp.domain;
 
+import com.parkingapp.domain.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

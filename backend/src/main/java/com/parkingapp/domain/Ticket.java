@@ -1,5 +1,6 @@
 package com.parkingapp.domain;
 
+import com.parkingapp.domain.enums.TicketStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,18 +22,16 @@ public class Ticket {
     @Id
     @GeneratedValue(strategy= GenerationType.UUID)
     private UUID id;
-/// Odata ce sunt implementate clasele se poate decomenta momentan da eroare pentru ca hibernate nu vede tabelele de la car user si ParkingSlot
-/*    @JoinColumn(name="user_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @JoinColumn(name="car_id")
+    @JoinColumn(name="vehicle_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    private Car car;
+    private Vehicle vehicle;
 
     @JoinColumn(name="parkingSlot_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    private ParkingSlot parkingSlot;*/
+    private ParkingSlot parkingSlot;
 
     @Column(name="startTime")
     private LocalDateTime startTime;

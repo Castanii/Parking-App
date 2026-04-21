@@ -1,20 +1,31 @@
 package com.parkingapp.service;
 
-import com.parkingapp.domain.Ticket;
-import com.parkingapp.domain.TicketStatus;
+import com.parkingapp.domain.*;
+import com.parkingapp.domain.enums.TicketStatus;
+import com.parkingapp.repository.ParkingSlotRepository;
 import com.parkingapp.repository.TicketRepository;
+import com.parkingapp.repository.UserRepository;
+import com.parkingapp.repository.VehicleRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAmount;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TicketService {
     private final TicketRepository ticketRepository;
-    public TicketService(TicketRepository ticketRepository) {
+    private final UserRepository userRepository;
+    private final VehicleRepository  vehicleRepository;
+    private final ParkingSlotRepository  parkingSlotRepository;
+    public TicketService(TicketRepository ticketRepository,
+                         UserRepository userRepository,VehicleRepository vehicleRepository,ParkingSlotRepository parkingSlotRepository)
+    {
+        this.userRepository = userRepository;
+        this.vehicleRepository = vehicleRepository;
+        this.parkingSlotRepository = parkingSlotRepository;
         this.ticketRepository = ticketRepository;
     }
 
@@ -42,8 +53,38 @@ public class TicketService {
         }
     }
 
+    @Transactional
+    public Ticket createTicket(UUID userId, UUID vehicleId, UUID parkingSlotId, int hours) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User-ul nu a fost găsit!"));
+
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new RuntimeException("Mașina nu a fost găsită!"));
+
+        ParkingSlot slot = parkingSlotRepository.findById(parkingSlotId)
+                .orElseThrow(() -> new RuntimeException("Locul de parcare nu a fost găsit!"));
+
+        Ticket ticket = new Ticket();
+        ticket.setUser(user);
+        ticket.setVehicle(vehicle);
+        ticket.setParkingSlot(slot);
+        ticket.setStartTime(LocalDateTime.now());
+        ticket.setEndTime(LocalDateTime.now().plusHours(hours));
+
+      ticket.setStatus(TicketStatus.ACTIVE);
+
+        return ticketRepository.save(ticket);
+    }
+
     public void applyExtension(Ticket ticket,int noOfHours){
-        ticket.setEndTime(LocalDateTime.now().plusHours(noOfHours));
+        ticket.setEndTime(ticket.getEndTime().plusHours(noOfHours));
         ticketRepository.save(ticket);
+    }
+
+
+    public Ticket findById(UUID id) {
+        return ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tichetul cu ID-ul " + id + " nu a fost găsit!"));
     }
 }

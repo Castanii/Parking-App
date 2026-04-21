@@ -1,4 +1,4 @@
-package com.parkingapp.domain;
+package com.parkingapp.domain.enums;
 
 public enum PaymentStatus {
     PENDING,
