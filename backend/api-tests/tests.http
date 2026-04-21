@@ -1,0 +1,84 @@
+### Variables
+
+# Base URL is now provided by http-client.env.json
+# Ensure you select the 'dev' environment in IntelliJ's top-right "Run with:" dropdown.
+
+### 1. User Registration
+# This saves the generated User ID to a global variable 'userId'
+POST {{baseUrl}}/users/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Password123"
+}
+
+> {%
+    client.global.set("userId", response.body.id);
+%}
+
+### 2. User Login
+# This saves the JWT token to a global variable 'authToken'
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Password123"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
+### 3. Add Vehicle to User
+# Uses the 'userId' and 'authToken' captured above
+POST {{baseUrl}}/vehicles/user/{{userId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "licensePlate": "ABC-12345",
+  "vehicleCategory": "B",
+  "isElectric": true
+}
+
+> {%
+    client.global.set("vehicleId", response.body.id);
+%}
+### 4. Create Parking Area
+# This saves the created Area ID to 'areaId'
+POST {{baseUrl}}/parking-areas
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Central Plaza Parking",
+  "address": "123 Main St",
+  "capacity": 100,
+  "hourlyRate": 5.50,
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}
+
+> {%
+    client.global.set("areaId", response.body.id);
+%}
+
+### 5. Find Nearby Parking Areas
+GET {{baseUrl}}/parking-areas/nearby?lat=40.7128&lon=-74.0060&radius=1000
+Authorization: Bearer {{authToken}}
+
+### 6. Get Available Slots for Area
+# Uses the 'areaId' captured in Step 4
+GET {{baseUrl}}/parking-areas/{{areaId}}/available-slots?size=STANDARD
+Authorization: Bearer {{authToken}}
+
+### 7. Get All Parking Areas
+GET {{baseUrl}}/parking-areas
+Authorization: Bearer {{authToken}}
+
+### 8. Delete Vehicle
+# Replace {{vehicleId}} with a specific ID or add a capture script to the 'Add Vehicle' request
+DELETE {{baseUrl}}/vehicles/{{vehicleId}}?userId={{userId}}
+Authorization: Bearer {{authToken}}
