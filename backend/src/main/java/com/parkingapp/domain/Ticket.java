@@ -29,17 +29,17 @@ public class Ticket {
     @ManyToOne(fetch = FetchType.LAZY)
     private Vehicle vehicle;
 
-    @JoinColumn(name="parkingSlot_id")
+    @JoinColumn(name="parking_slot_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private ParkingSlot parkingSlot;
 
-    @Column(name="startTime")
+    @Column(name="start_time")
     private LocalDateTime startTime;
 
-    @Column(name="endTime")
+    @Column(name="end_time")
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "statusTicket", nullable = false)
+    @Column(name = "status", nullable = false)
     private TicketStatus status;
 }
