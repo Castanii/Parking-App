@@ -1,5 +1,6 @@
 package com.parkingapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.locationtech.jts.geom.Point;
@@ -33,6 +34,7 @@ public class ParkingArea {
      * Uses org.locationtech.jts.geom.Point (via hibernate-spatial) instead of
      * spring-data-geo Point which lacks JPA spatial support.
      */
+    @JsonIgnore
     @Column(name = "location", nullable = false, columnDefinition = "GEOMETRY(Point, 4326)")
     private Point location;
 
@@ -40,5 +42,14 @@ public class ParkingArea {
     private Double hourlyRate;
 
     @OneToMany(mappedBy = "parkingArea", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<ParkingSlot> parkingSlots = new ArrayList<>();
+
+    public double getLatitude() {
+        return location.getY();
+    }
+
+    public double getLongitude() {
+        return location.getX();
+    }
 }
