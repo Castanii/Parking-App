@@ -78,6 +78,12 @@ public class TicketService {
     }
 
     public void applyExtension(Ticket ticket,int noOfHours){
+        if (noOfHours <= 0) {
+            throw new IllegalArgumentException("Extension hours must be greater than 0.");
+        }
+        if (ticket.getStatus() != TicketStatus.ACTIVE) {
+            throw new IllegalStateException("Only ACTIVE tickets can be extended.");
+        }
         ticket.setEndTime(ticket.getEndTime().plusHours(noOfHours));
         ticketRepository.save(ticket);
     }
