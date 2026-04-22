@@ -19,6 +19,12 @@ public class PaymentService {
 
     @Transactional
     public Payment processPayment(Ticket ticket, Double amount, String currency) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than 0.");
+        }
+        if (currency == null || currency.isBlank()) {
+            throw new IllegalArgumentException("Currency must not be empty.");
+        }
 
         Payment payment = new Payment();
         payment.setTicket(ticket);

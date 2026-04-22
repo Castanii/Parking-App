@@ -55,6 +55,9 @@ public class TicketService {
 
     @Transactional
     public Ticket createTicket(UUID userId, UUID vehicleId, UUID parkingSlotId, int hours) {
+        if (hours <= 0) {
+            throw new IllegalArgumentException("Duration must be greater than 0 hours.");
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User-ul nu a fost găsit!"));
