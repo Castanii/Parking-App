@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { getVehicles, addVehicle, updateVehicle, deleteVehicle, type VehicleResponse } from '../lib/vehicleService';
-import { Car as CarIcon, Plus, Edit2, Trash2, Check, ArrowLeft } from 'lucide-react';
+import { Car as CarIcon, Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 
 export function Profile() {
   const { user } = useAuth();
