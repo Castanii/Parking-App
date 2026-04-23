@@ -28,8 +28,14 @@ public class MessageController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<MessageService.MessageResponse>> getUserMessages(@PathVariable UUID userId) {
-        return ResponseEntity.ok(messageService.getUserMessages(userId));
+    public ResponseEntity<List<MessageService.MessageResponse>> getUserMessages(
+            @PathVariable UUID userId,
+            Authentication authentication) {
+        UUID authenticatedUserId = getUserId(authentication);
+        if (!authenticatedUserId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(messageService.getUserMessages(authenticatedUserId));
     }
 
     @GetMapping("/thread/{threadId}")
