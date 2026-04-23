@@ -59,12 +59,11 @@ public class ParkingAreaService {
 
     @Transactional(readOnly = true)
     public List<AreaAvailabilityResponse> getAvailabilitySummary() {
-        return parkingAreaRepository.findAll().stream()
-                .map(area -> {
-                    List<ParkingSlot> slots = parkingSlotRepository.findAllByParkingAreaId(area.getId());
-                    long available = slots.stream()
-                            .filter(s -> s.getStatus() == ParkingSlotStatus.AVAILABLE)
-                            .count();
+        return parkingAreaRepository.findAvailabilitySummary().stream()
+                .map(row -> {
+                    ParkingArea area = (ParkingArea) row[0];
+                    int total = ((Number) row[1]).intValue();
+                    int available = row[2] != null ? ((Number) row[2]).intValue() : 0;
                     return new AreaAvailabilityResponse(
                             area.getId(),
                             area.getName(),
@@ -73,8 +72,8 @@ public class ParkingAreaService {
                             area.getHourlyRate(),
                             area.getLocation().getY(),
                             area.getLocation().getX(),
-                            slots.size(),
-                            (int) available
+                            total,
+                            available
                     );
                 })
                 .toList();
