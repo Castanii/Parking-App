@@ -8,7 +8,10 @@ export function Profile() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
+  const rawReturnTo = searchParams.get('returnTo');
+  const returnTo = rawReturnTo && rawReturnTo.startsWith('/payment/')
+    ? rawReturnTo
+    : null;
 
   const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
   const [loading, setLoading] = useState(true);
