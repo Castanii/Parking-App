@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getParkingArea, getAvailableSlots, type ParkingAreaResponse } from '../lib/parkingService';
 import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
 import { buyTicket } from '../lib/ticketService';
-import { Car, CreditCard, MapPin, Check, ArrowLeft } from 'lucide-react';
+import { Car, CreditCard, MapPin, Check } from 'lucide-react';
 
 export function Payment() {
   const { lotId } = useParams();
