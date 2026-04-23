@@ -10,6 +10,18 @@ export interface ParkingAreaResponse {
   longitude: number;
 }
 
+export interface AreaAvailabilitySummary {
+  id: string;
+  name: string;
+  address: string;
+  capacity: number;
+  hourlyRate: number;
+  latitude: number;
+  longitude: number;
+  totalSlots: number;
+  availableSlots: number;
+}
+
 export interface SlotResponse {
   id: string;
   slotIdentifier: string;
@@ -20,6 +32,11 @@ export interface SlotResponse {
 
 export async function getAllParkingAreas(): Promise<ParkingAreaResponse[]> {
   const res = await api.get<ParkingAreaResponse[]>('/parking-areas');
+  return res.data;
+}
+
+export async function getAvailabilitySummary(): Promise<AreaAvailabilitySummary[]> {
+  const res = await api.get<AreaAvailabilitySummary[]>('/parking-areas/availability-summary');
   return res.data;
 }
 

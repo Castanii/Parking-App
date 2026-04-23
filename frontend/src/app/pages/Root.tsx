@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Map, User, Ticket, CreditCard, MessageSquare, LogOut, CalendarClock } from 'lucide-react';
+import { Map, User, Ticket, MessageSquare, LogOut, CalendarClock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Root() {
@@ -35,7 +35,7 @@ export function Root() {
                 }`}
               >
                 <Map className="w-4 h-4" />
-                <span className="hidden sm:inline">Map</span>
+                <span className="hidden sm:inline">Hartă</span>
               </Link>
               <Link
                 to="/tickets"
@@ -46,7 +46,7 @@ export function Root() {
                 }`}
               >
                 <Ticket className="w-4 h-4" />
-                <span className="hidden sm:inline">Tickets</span>
+                <span className="hidden sm:inline">Tichete</span>
               </Link>
               <Link
                 to="/messages"
@@ -57,7 +57,7 @@ export function Root() {
                 }`}
               >
                 <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">Messages</span>
+                <span className="hidden sm:inline">Suport</span>
               </Link>
               <Link
                 to="/reservations"
@@ -68,7 +68,7 @@ export function Root() {
                 }`}
               >
                 <CalendarClock className="w-4 h-4" />
-                <span className="hidden sm:inline">Reservations</span>
+                <span className="hidden sm:inline">Rezervări</span>
               </Link>
               <Link
                 to="/profile"
@@ -79,15 +79,15 @@ export function Root() {
                 }`}
               >
                 <User className="w-4 h-4" />
-                <span className="hidden sm:inline">Profile</span>
+                <span className="hidden sm:inline">Profil</span>
               </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-600"
-                title="Logout"
+                title="Deconectare"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">Deconectare</span>
               </button>
             </nav>
           </div>
