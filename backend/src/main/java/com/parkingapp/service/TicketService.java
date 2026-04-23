@@ -148,12 +148,17 @@ public class TicketService {
         ticket.setTotalCost(ticket.getTotalCost().add(extensionCost));
         ticket = ticketRepository.save(ticket);
 
+        // Carry forward the payment method from the most recent payment for this ticket
+        PaymentMethod paymentMethod = paymentRepository.findTopByTicketIdOrderByCreatedAtDesc(ticket.getId())
+                .map(Payment::getPaymentMethod)
+                .orElse(PaymentMethod.CARD);
+
         // Create extension payment
         Payment payment = new Payment();
         payment.setTicket(ticket);
         payment.setUser(ticket.getUser());
         payment.setAmount(extensionCost);
-        payment.setPaymentMethod(PaymentMethod.CARD);
+        payment.setPaymentMethod(paymentMethod);
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setTransactionId(UUID.randomUUID().toString());
         paymentRepository.save(payment);
