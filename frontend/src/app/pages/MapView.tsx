@@ -81,7 +81,26 @@ export function MapView() {
         const slots = await getAvailableSlots(navigationTarget.id);
         const available = slots.length;
         const occupancyPct = navigationTarget.total > 0 ? available / navigationTarget.total : 1;
+        const status: ParkingAreaWithSlots['status'] =
+          available === 0 ? 'full' : occupancyPct <= BUSY_THRESHOLD ? 'busy' : 'available';
 
+        setLots(currentLots =>
+          currentLots.map(lot =>
+            lot.id === navigationTarget.id
+              ? { ...lot, available, status }
+              : lot
+          )
+        );
+        setSelectedLot(currentSelectedLot =>
+          currentSelectedLot?.id === navigationTarget.id
+            ? { ...currentSelectedLot, available, status }
+            : currentSelectedLot
+        );
+        setNavigationTarget(currentNavigationTarget =>
+          currentNavigationTarget?.id === navigationTarget.id
+            ? { ...currentNavigationTarget, available, status }
+            : currentNavigationTarget
+        );
         if (occupancyPct <= BUSY_THRESHOLD) {
           const nearestAlternative = lots
             .filter(l => l.id !== navigationTarget.id && l.available > 0)
