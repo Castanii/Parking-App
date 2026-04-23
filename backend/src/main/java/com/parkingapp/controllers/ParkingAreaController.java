@@ -46,4 +46,9 @@ public class ParkingAreaController {
             @RequestParam(required = false) SizeCategory size) {
         return ResponseEntity.ok(parkingAreaService.getAvailableSlots(id, size));
     }
+
+    @GetMapping("/{id}/slots")
+    public ResponseEntity<List<ParkingAreaService.SlotResponse>> getAllSlots(@PathVariable UUID id) {
+        return ResponseEntity.ok(parkingAreaService.getAllSlots(id));
+    }
 }

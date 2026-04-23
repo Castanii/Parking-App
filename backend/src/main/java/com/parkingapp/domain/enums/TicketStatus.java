@@ -2,6 +2,6 @@ package com.parkingapp.domain.enums;
 
 public enum TicketStatus {
     ACTIVE,
-    EXPIRED,
+    COMPLETED,
     CANCELLED
 }

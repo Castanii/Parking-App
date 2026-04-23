@@ -1,65 +1,83 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { parkingLots, userCars } from '../data/mockData';
-import { ParkingLot } from '../types';
-import { Navigation, MapPin, Search, AlertCircle, Car, ChevronDown, LocateFixed } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { getAllParkingAreas, getAvailableSlots, type ParkingAreaResponse } from '../lib/parkingService';
+import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
+import { Navigation, MapPin, AlertCircle, Car, ChevronDown } from 'lucide-react';
 
-// --- NEW MAPBOX IMPORTS ---
 import Map, { Marker, MapRef } from 'react-map-gl';
 import { SearchBox } from '@mapbox/search-js-react';
-import 'mapbox-gl/dist/mapbox-gl.css'; // CRITICAL: This makes the map look right!
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
 
+interface ParkingAreaWithSlots extends ParkingAreaResponse {
+  available: number;
+  total: number;
+  status: 'available' | 'full' | 'reserved';
+}
+
 export function MapView() {
   const navigate = useNavigate();
-  const mapRef = useRef<MapRef>(null); // This allows us to fly the map around
+  const { user } = useAuth();
+  const mapRef = useRef<MapRef>(null);
 
-  const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
+  const [lots, setLots] = useState<ParkingAreaWithSlots[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
+  const [selectedLot, setSelectedLot] = useState<ParkingAreaWithSlots | null>(null);
   const [userLocation] = useState({ lat: 46.7556635, lng: 23.57446 });
-  //const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCar, setSelectedCar] = useState(userCars[0]?.id || '');
+  const [selectedCar, setSelectedCar] = useState('');
   const [showCarSelector, setShowCarSelector] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const selectedCarInfo = userCars.find(c => c.id === selectedCar);
-/*
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
+  useEffect(() => {
+    loadData();
+  }, [user]);
 
-    setIsLocating(true);
+  const loadData = async () => {
+    if (!user) return;
+    try {
+      const [areas, userVehicles] = await Promise.all([
+        getAllParkingAreas(),
+        getVehicles(user.id),
+      ]);
 
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLat = position.coords.latitude;
-          const newLng = position.coords.longitude;
-
-          // Update the blue dot's position
-          setUserLocation({ lat: newLat, lng: newLng });
-
-          // Fly the map to the user
-          if (mapRef.current) {
-            mapRef.current.flyTo({
-              center: [newLng, newLat],
-              zoom: 15,
-              duration: 2000
-            });
+      // For each area, fetch available slots to determine availability
+      const areasWithSlots = await Promise.all(
+        areas.map(async (area) => {
+          try {
+            const availableSlots = await getAvailableSlots(area.id);
+            const available = availableSlots.length;
+            return {
+              ...area,
+              available,
+              total: area.capacity,
+              status: (available === 0 ? 'full' : 'available') as 'available' | 'full' | 'reserved',
+            };
+          } catch {
+            return {
+              ...area,
+              available: 0,
+              total: area.capacity,
+              status: 'full' as const,
+            };
           }
-          setIsLocating(false);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          alert('Unable to retrieve your location. Please check your browser permissions.');
-          setIsLocating(false);
-        },
-        // High accuracy option for better mobile tracking
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+        })
+      );
+
+      setLots(areasWithSlots);
+      setVehicles(userVehicles);
+      if (userVehicles.length > 0) setSelectedCar(userVehicles[0].id);
+    } catch (err) {
+      console.error('Failed to load parking data', err);
+    } finally {
+      setLoading(false);
+    }
   };
-*/
+
+  const selectedCarInfo = vehicles.find(c => c.id === selectedCar);
+
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -72,27 +90,25 @@ export function MapView() {
     return R * c;
   };
 
-  const findNearestAvailable = (currentLot: ParkingLot) => {
-    const availableLots = parkingLots.filter(
+  const findNearestAvailable = (currentLot: ParkingAreaWithSlots) => {
+    const availableLots = lots.filter(
         lot => lot.id !== currentLot.id && lot.status === 'available' && lot.available > 0
     );
     if (availableLots.length === 0) return null;
     return availableLots.reduce((nearest, lot) => {
-      const distanceToCurrent = calculateDistance(currentLot.lat, currentLot.lng, lot.lat, lot.lng);
-      const distanceToNearest = calculateDistance(currentLot.lat, currentLot.lng, nearest.lat, nearest.lng);
+      const distanceToCurrent = calculateDistance(currentLot.latitude, currentLot.longitude, lot.latitude, lot.longitude);
+      const distanceToNearest = calculateDistance(currentLot.latitude, currentLot.longitude, nearest.latitude, nearest.longitude);
       return distanceToCurrent < distanceToNearest ? lot : nearest;
     });
   };
 
-  const handleReserve = (lot: ParkingLot) => {
+  const handleReserve = (lot: ParkingAreaWithSlots) => {
     if (lot.status === 'full' || lot.available === 0) {
       const nearest = findNearestAvailable(lot);
       if (nearest) {
         setSelectedLot(nearest);
-        alert(`This lot is full. Redirecting you to the nearest available parking: ${nearest.name}`);
-        // Mapbox specific pan/zoom
         if (mapRef.current) {
-          mapRef.current.flyTo({ center: [nearest.lng, nearest.lat], zoom: 16, duration: 1500 });
+          mapRef.current.flyTo({ center: [nearest.longitude, nearest.latitude], zoom: 16, duration: 1500 });
         }
       } else {
         alert('No available parking lots nearby.');
@@ -102,7 +118,7 @@ export function MapView() {
     }
   };
 
-  const filteredLots = parkingLots.filter(lot =>
+  const filteredLots = lots.filter(lot =>
       lot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lot.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -111,8 +127,6 @@ export function MapView() {
       <div className="min-h-[calc(100vh-73px)] flex flex-col lg:flex-row">
         {/* Map Section */}
         <div className="flex-1 relative bg-gray-100">
-
-          {/* Real Mapbox Map */}
           <Map
               ref={mapRef}
               mapboxAccessToken={MAPBOX_TOKEN}
@@ -121,22 +135,19 @@ export function MapView() {
                 latitude: userLocation.lat,
                 zoom: 14
               }}
-              mapStyle="mapbox://styles/mapbox/streets-v12" // Change to "light-v11" or "dark-v11" for different themes!
+              mapStyle="mapbox://styles/mapbox/streets-v12"
               style={{ width: '100%', height: '100%', position: 'absolute' }}
           >
-            {/* User Marker */}
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
               <div className="w-4 h-4 bg-blue-600 rounded-full border-4 border-white shadow-lg" />
             </Marker>
 
-            {/* Parking Lot Markers */}
             {filteredLots.map((lot) => (
                 <Marker
                     key={lot.id}
-                    longitude={lot.lng}
-                    latitude={lot.lat}
+                    longitude={lot.longitude}
+                    latitude={lot.latitude}
                     onClick={(e) => {
-                      // Prevent map click events from firing
                       e.originalEvent.stopPropagation();
                       setSelectedLot(lot);
                     }}
@@ -155,9 +166,9 @@ export function MapView() {
             ))}
           </Map>
 
-          <div className="absolute top-4 left-4 right-4 z-10">
-            <div className="bg-white rounded-lg shadow-lg max-w-md overflow-hidden flex items-center p-1">
-              {/* Mapbox Search component automatically handles typing, fetching, and dropdown UI */}
+          <div className="absolute top-4 left-4 right-4 z-10 flex items-start gap-3">
+            {/* Search Bar */}
+            <div className="bg-white rounded-lg shadow-lg flex-1 min-w-0 overflow-hidden flex items-center p-1">
               <SearchBox
                   accessToken={MAPBOX_TOKEN}
                   map={mapRef.current?.getMap()}
@@ -175,45 +186,33 @@ export function MapView() {
                   }}
               />
             </div>
-          </div>
-          {/* Search Bar - Replaced with Mapbox SearchBox */}
 
-          {/* Car Selection Widget (Unchanged) */}
-          <div className="absolute top-20 left-4 right-4 z-10">
-            <div className="bg-white rounded-lg shadow-lg max-w-md">
+            {/* Car Selection Widget */}
+            <div className="relative flex-shrink-0">
               <button
                   onClick={() => setShowCarSelector(!showCarSelector)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-lg"
+                  className="bg-white rounded-lg shadow-lg p-2.5 flex items-center gap-2 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Car className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs text-gray-500">Selected Vehicle</p>
-                    {selectedCarInfo ? (
-                        <>
-                          <p className="font-semibold text-sm">
-                            {selectedCarInfo.make} {selectedCarInfo.model}
-                          </p>
-                          <p className="text-xs text-gray-600">{selectedCarInfo.licensePlate}</p>
-                        </>
-                    ) : (
-                        <p className="text-sm text-gray-500">No vehicle selected</p>
-                    )}
-                  </div>
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Car className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-left hidden sm:block">
+                  {selectedCarInfo ? (
+                      <p className="font-semibold text-sm whitespace-nowrap">{selectedCarInfo.licensePlate}</p>
+                  ) : (
+                      <p className="text-sm text-gray-500 whitespace-nowrap">No vehicle</p>
+                  )}
                 </div>
                 <ChevronDown
-                    className={`w-5 h-5 text-gray-400 transition-transform ${
+                    className={`w-4 h-4 text-gray-400 transition-transform ${
                         showCarSelector ? 'rotate-180' : ''
                     }`}
                 />
               </button>
 
-              {/* Car Selector Dropdown */}
               {showCarSelector && (
-                  <div className="border-t border-gray-200 p-2">
-                    {userCars.map((car) => (
+                  <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 w-64 p-2">
+                    {vehicles.map((car) => (
                         <button
                             key={car.id}
                             onClick={() => {
@@ -237,16 +236,14 @@ export function MapView() {
                               />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">
-                                {car.make} {car.model}
-                              </p>
-                              <p className="text-xs text-gray-600">{car.licensePlate}</p>
+                              <p className="font-medium text-sm">{car.licensePlate}</p>
+                              <p className="text-xs text-gray-600">Category {car.vehicleCategory}{car.electric ? ' • EV' : ''}</p>
                             </div>
                           </div>
                         </button>
                     ))}
 
-                    {userCars.length === 0 && (
+                    {vehicles.length === 0 && (
                         <div className="p-4 text-center">
                           <p className="text-sm text-gray-500 mb-2">No vehicles added</p>
                           <button
@@ -281,19 +278,11 @@ export function MapView() {
           </div>
         </div>
 
-        {/* Locate Me Button */}
-        {/*<button*/}
-        {/*    onClick={handleLocateMe}*/}
-        {/*    disabled={isLocating}*/}
-        {/*    className="absolute bottom-24 left-4 z-10 bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 transition-colors disabled:opacity-75"*/}
-        {/*    title="Find my location"*/}
-        {/*>*/}
-        {/*  <LocateFixed className={`w-6 h-6 text-blue-600 ${isLocating ? 'animate-pulse' : ''}`} />*/}
-        {/*</button>*/}
-
         {/* Details Panel */}
         <div className="w-full lg:w-96 bg-white border-l border-gray-200 overflow-y-auto">
-          {selectedLot ? (
+          {loading ? (
+            <div className="p-6 text-center text-gray-500">Loading parking areas...</div>
+          ) : selectedLot ? (
               <div className="p-6">
                 <div className="mb-6">
                   <div className="flex items-start justify-between mb-2">
@@ -322,7 +311,7 @@ export function MapView() {
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <span className="text-sm text-gray-600">Price per Hour</span>
-                    <span className="font-semibold">${selectedLot.pricePerHour}</span>
+                    <span className="font-semibold">${selectedLot.hourlyRate}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-gray-100">
                     <span className="text-sm text-gray-600">Distance</span>
@@ -330,8 +319,8 @@ export function MapView() {
                   {calculateDistance(
                       userLocation.lat,
                       userLocation.lng,
-                      selectedLot.lat,
-                      selectedLot.lng
+                      selectedLot.latitude,
+                      selectedLot.longitude
                   ).toFixed(1)} km
                 </span>
                   </div>
@@ -379,6 +368,9 @@ export function MapView() {
           ) : (
               <div className="p-6">
                 <h2 className="font-bold mb-4">All Parking Lots</h2>
+                {filteredLots.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500">No parking areas found</div>
+                ) : (
                 <div className="space-y-3">
                   {filteredLots.map((lot) => (
                       <button
@@ -386,8 +378,7 @@ export function MapView() {
                           onClick={() => {
                             setSelectedLot(lot);
                             if (mapRef.current) {
-                              // Mapbox uses a smooth animation with flyTo
-                              mapRef.current.flyTo({ center: [lot.lng, lot.lat], zoom: 16, duration: 1500 });
+                              mapRef.current.flyTo({ center: [lot.longitude, lot.latitude], zoom: 16, duration: 1500 });
                             }
                           }}
                           className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
@@ -407,20 +398,21 @@ export function MapView() {
                         <p className="text-xs text-gray-600 mb-2">{lot.address}</p>
                         <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">
-                      ${lot.pricePerHour}/hr
+                      ${lot.hourlyRate}/hr
                     </span>
                           <span className="text-gray-500">
                       {calculateDistance(
                           userLocation.lat,
                           userLocation.lng,
-                          lot.lat,
-                          lot.lng
+                          lot.latitude,
+                          lot.longitude
                       ).toFixed(1)} km
                     </span>
                         </div>
                       </button>
                   ))}
                 </div>
+                )}
               </div>
           )}
         </div>

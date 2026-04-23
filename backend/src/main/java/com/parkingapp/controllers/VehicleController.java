@@ -33,6 +33,14 @@ public class VehicleController {
         return ResponseEntity.ok(vehicleService.getVehicleById(id));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<VehicleService.VehicleResponse> updateVehicle(
+            @PathVariable UUID id,
+            @RequestParam UUID userId,
+            @RequestBody VehicleService.VehicleRequest request) {
+        return ResponseEntity.ok(vehicleService.updateVehicle(id, userId, request));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVehicle(
             @PathVariable UUID id,

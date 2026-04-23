@@ -1,8 +1,16 @@
-import { Outlet, Link, useLocation } from 'react-router';
-import { Map, User, Ticket, CreditCard, MessageSquare } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { Map, User, Ticket, CreditCard, MessageSquare, LogOut, CalendarClock } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Root() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -52,6 +60,17 @@ export function Root() {
                 <span className="hidden sm:inline">Messages</span>
               </Link>
               <Link
+                to="/reservations"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/reservations')
+                    ? 'bg-blue-100 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <CalendarClock className="w-4 h-4" />
+                <span className="hidden sm:inline">Reservations</span>
+              </Link>
+              <Link
                 to="/profile"
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                   isActive('/profile')
@@ -62,6 +81,14 @@ export function Root() {
                 <User className="w-4 h-4" />
                 <span className="hidden sm:inline">Profile</span>
               </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-600"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </nav>
           </div>
         </div>

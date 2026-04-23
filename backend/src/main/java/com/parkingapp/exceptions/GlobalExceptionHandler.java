@@ -30,6 +30,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles state violations like "no available slots" or ownership checks.
+     * Translates into a 409 Conflict.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Conflict");
+        errorResponse.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
      * Handles custom IllegalArgumentExceptions (like duplicate emails or bad JWT configurations).
      * Translates into a 400 Bad Request.
      */
