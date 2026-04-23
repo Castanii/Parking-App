@@ -95,7 +95,7 @@ export function Register() {
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            {loading ? 'Se creează contul...' : 'Crează cont'}
+            {loading ? 'Se creează contul...' : 'Creează cont'}
           </button>
 
           <p className="text-center text-sm text-gray-600">
