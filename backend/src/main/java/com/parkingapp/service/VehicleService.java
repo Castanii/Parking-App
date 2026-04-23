@@ -63,6 +63,28 @@ public class VehicleService {
 
 
     @Transactional
+    public VehicleResponse updateVehicle(UUID id, UUID requestingUserId, VehicleRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found with id: " + id));
+
+        if (!vehicle.getUser().getId().equals(requestingUserId)) {
+            throw new IllegalStateException("You can only update your own vehicles.");
+        }
+
+        if (!vehicle.getLicensePlate().equals(request.licensePlate())
+                && vehicleRepository.existsByLicensePlate(request.licensePlate())) {
+            throw new IllegalArgumentException(
+                    "A vehicle with license plate '" + request.licensePlate() + "' already exists.");
+        }
+
+        vehicle.setLicensePlate(request.licensePlate());
+        vehicle.setVehicleCategory(VehicleCategory.valueOf(request.vehicleCategory()));
+        vehicle.setElectric(request.isElectric());
+
+        return mapToResponse(vehicleRepository.save(vehicle));
+    }
+
+    @Transactional
     public void deleteVehicle(UUID id, UUID requestingUserId) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found with id: " + id));

@@ -1,45 +1,7 @@
-export interface ParkingLot {
-  id: string;
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  available: number;
-  total: number;
-  pricePerHour: number;
-  status: 'available' | 'full' | 'reserved';
-}
-
-export interface Car {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  licensePlate: string;
-  color: string;
-}
-
-export interface ParkingTicket {
-  id: string;
-  lotId: string;
-  lotName: string;
-  lotAddress: string;
-  carId: string;
-  carInfo: string;
-  startTime: Date;
-  endTime: Date;
-  duration: number;
-  pricePerHour: number;
-  totalPrice: number;
-  status: 'active' | 'completed';
-  paymentMethod: string;
-}
-
-export interface Message {
-  id: string;
-  from: string;
-  subject: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-}
+// Re-export types from service modules for convenience
+export type { UserResponse } from '../lib/authService';
+export type { VehicleResponse, VehicleRequest } from '../lib/vehicleService';
+export type { ParkingAreaResponse, SlotResponse } from '../lib/parkingService';
+export type { TicketResponse, PaymentResponse, BuyTicketRequest } from '../lib/ticketService';
+export type { ReservationResponse, CreateReservationRequest } from '../lib/reservationService';
+export type { MessageResponse, SendMessageRequest } from '../lib/messageService';
