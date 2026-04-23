@@ -82,3 +82,61 @@ Authorization: Bearer {{authToken}}
 # Replace {{vehicleId}} with a specific ID or add a capture script to the 'Add Vehicle' request
 DELETE {{baseUrl}}/vehicles/{{vehicleId}}?userId={{userId}}
 Authorization: Bearer {{authToken}}
+
+### 9. Create Parking Ticket
+# Trimite cererea de creare a unui tichet pentru 2 ore
+//Replace slotID with a specific ID
+//momentan adaugam slotId-ul manual
+POST {{baseUrl}}/tickets/create?vehicleId={{vehicleId}}&parkingSlotId=092ce89f-a488-461e-bf43-15abd7173789&hours=2&userId={{userId}}
+Authorization: Bearer {{authToken}}
+
+> {%
+    client.log("--- ANALIZĂ CORP RĂSPUNS ---");
+    client.log(JSON.stringify(response.body));
+
+    // Încercăm să salvăm ID-ul căutând în toate variantele posibile
+    let ticketId = response.body.id || response.body.ticketId || response.body.idTicket;
+
+    if (ticketId) {
+        client.global.set("ticketId", ticketId);
+        client.log("ID SALVAT: " + ticketId);
+    } else {
+        client.log("NU S-A GĂSIT ID. Uită-te mai sus la JSON-ul printat și vezi cum se numește cheia pentru UUID.");
+    }
+    %}
+### 10. Process Payment
+POST {{baseUrl}}/payments/process?ticketId={{ticketId}}&amount=11.00&currency=RON
+Authorization: Bearer {{authToken}}
+
+> {%
+    client.global.set("paymentId", response.body.id);
+    client.log("Plată procesată pentru tichetul: " + client.global.get("ticketId"));
+%}
+
+
+### 11. Extend Ticket Duration
+# Prelungim cu 3 ore
+PUT {{baseUrl}}/tickets/{{ticketId}}/extend?noOfHours=3
+Authorization: Bearer {{authToken}}
+
+> {%
+    client.log("Prelungire efectuată cu succes.");
+%}
+
+
+### 12. Get Ticket Details
+GET {{baseUrl}}/tickets/{{ticketId}}
+Authorization: Bearer {{authToken}}
+
+> {%
+    client.log("Status: " + response.body.status);
+    client.log("Expiră la: " + response.body.endTime);
+%}
+
+
+### 13. Get Payment Details
+# Verificăm dacă plata a fost salvată corect în DB
+GET {{baseUrl}}/payments/{{paymentId}}
+Authorization: Bearer {{authToken}}
+
+

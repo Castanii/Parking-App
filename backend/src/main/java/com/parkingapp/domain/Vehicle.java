@@ -1,5 +1,6 @@
 package com.parkingapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.parkingapp.domain.enums.VehicleCategory;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -7,6 +8,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
+
 @Entity
 @Table(name = "vehicles")
 public class Vehicle {
@@ -27,5 +29,6 @@ public class Vehicle {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 }
