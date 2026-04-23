@@ -1,20 +1,43 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllParkingAreas, getAvailableSlots, type ParkingAreaResponse } from '../lib/parkingService';
+import { getAvailabilitySummary, getAvailableSlots, type AreaAvailabilitySummary } from '../lib/parkingService';
 import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
-import { Navigation, MapPin, AlertCircle, Car, ChevronDown } from 'lucide-react';
+import { Navigation, MapPin, AlertCircle, Car, ChevronDown, X, Clock, ArrowRight, RotateCcw } from 'lucide-react';
 
-import Map, { Marker, MapRef } from 'react-map-gl';
+import Map, { Marker, Source, Layer, MapRef } from 'react-map-gl';
+import type { Feature } from 'geojson';
 import { SearchBox } from '@mapbox/search-js-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+const CLUJ_CENTER = { lat: 46.7556635, lng: 23.57446 };
+const BUSY_THRESHOLD = 0.2;
+const POLL_INTERVAL_MS = 30_000;
 
-interface ParkingAreaWithSlots extends ParkingAreaResponse {
+interface DirectionStep {
+  maneuver: { instruction: string };
+  distance: number;
+}
+
+interface RouteInfo {
+  geometry: Feature;
+  distanceM: number;
+  durationS: number;
+  steps: DirectionStep[];
+}
+
+type NavPhase = 'idle' | 'navigating' | 'rerouting';
+
+interface RerouteAlert {
+  message: string;
+  suggestedLot: ParkingAreaWithSlots;
+}
+
+interface ParkingAreaWithSlots extends AreaAvailabilitySummary {
   available: number;
   total: number;
-  status: 'available' | 'full' | 'reserved';
+  status: 'available' | 'busy' | 'full';
 }
 
 export function MapView() {
@@ -25,46 +48,96 @@ export function MapView() {
   const [lots, setLots] = useState<ParkingAreaWithSlots[]>([]);
   const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingAreaWithSlots | null>(null);
-  const [userLocation] = useState({ lat: 46.7556635, lng: 23.57446 });
+  const [userLocation, setUserLocation] = useState(CLUJ_CENTER);
+  const geoWatchRef = useRef<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchRadius, setSearchRadius] = useState(1);
   const [selectedCar, setSelectedCar] = useState('');
   const [showCarSelector, setShowCarSelector] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Navigation state
+  const [navPhase, setNavPhase] = useState<NavPhase>('idle');
+  const [navigationTarget, setNavigationTarget] = useState<ParkingAreaWithSlots | null>(null);
+  const [activeRoute, setActiveRoute] = useState<RouteInfo | null>(null);
+  const [rerouteAlert, setRerouteAlert] = useState<RerouteAlert | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     loadData();
   }, [user]);
 
+  // Poll availability during active navigation and trigger rerouting
+  useEffect(() => {
+    if (navPhase !== 'navigating' || !navigationTarget) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+
+    const poll = async () => {
+      try {
+        const slots = await getAvailableSlots(navigationTarget.id);
+        const available = slots.length;
+        const occupancyPct = navigationTarget.total > 0 ? available / navigationTarget.total : 1;
+
+        if (occupancyPct <= BUSY_THRESHOLD) {
+          const nearestAlternative = lots
+            .filter(l => l.id !== navigationTarget.id && l.available > 0)
+            .sort((a, b) =>
+              calculateDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude) -
+              calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+            )[0];
+
+          if (nearestAlternative) {
+            setNavPhase('rerouting');
+            setRerouteAlert({
+              message: `Only ${available} spot${available !== 1 ? 's' : ''} left at ${navigationTarget.name}!`,
+              suggestedLot: nearestAlternative,
+            });
+            if (pollRef.current) clearInterval(pollRef.current);
+          }
+        }
+      } catch {
+        // network error during poll — ignore
+      }
+    };
+
+    pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [navPhase, navigationTarget, lots, userLocation]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    geoWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setUserLocation(CLUJ_CENTER),
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    return () => {
+      if (geoWatchRef.current !== null) navigator.geolocation.clearWatch(geoWatchRef.current);
+    };
+  }, []);
+
   const loadData = async () => {
     if (!user) return;
     try {
-      const [areas, userVehicles] = await Promise.all([
-        getAllParkingAreas(),
+      const [summary, userVehicles] = await Promise.all([
+        getAvailabilitySummary(),
         getVehicles(user.id),
       ]);
 
-      // For each area, fetch available slots to determine availability
-      const areasWithSlots = await Promise.all(
-        areas.map(async (area) => {
-          try {
-            const availableSlots = await getAvailableSlots(area.id);
-            const available = availableSlots.length;
-            return {
-              ...area,
-              available,
-              total: area.capacity,
-              status: (available === 0 ? 'full' : 'available') as 'available' | 'full' | 'reserved',
-            };
-          } catch {
-            return {
-              ...area,
-              available: 0,
-              total: area.capacity,
-              status: 'full' as const,
-            };
-          }
-        })
-      );
+      const areasWithSlots: ParkingAreaWithSlots[] = summary.map((area) => {
+        const occupancyPct = area.totalSlots > 0 ? (area.availableSlots / area.totalSlots) : 0;
+        const status = area.availableSlots === 0 ? 'full' : occupancyPct <= 0.2 ? 'busy' : 'available';
+        return {
+          ...area,
+          available: area.availableSlots,
+          total: area.totalSlots,
+          status,
+        };
+      });
 
       setLots(areasWithSlots);
       setVehicles(userVehicles);
@@ -75,6 +148,65 @@ export function MapView() {
       setLoading(false);
     }
   };
+
+  const fetchRoute = useCallback(async (
+    from: { lat: number; lng: number },
+    to: { lat: number; lng: number }
+  ): Promise<RouteInfo | null> => {
+    try {
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?steps=true&geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.routes || data.routes.length === 0) return null;
+      const route = data.routes[0];
+      return {
+        geometry: { type: 'Feature', properties: {}, geometry: route.geometry },
+        distanceM: route.distance,
+        durationS: route.duration,
+        steps: route.legs[0]?.steps ?? [],
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const startNavigation = useCallback(async (lot: ParkingAreaWithSlots) => {
+    if (!MAPBOX_TOKEN) {
+      alert('Mapbox token missing. Create frontend/.env.local with VITE_MAPBOX_ACCESS_TOKEN=pk.your_token');
+      return;
+    }
+    setRouteLoading(true);
+    const route = await fetchRoute(userLocation, { lat: lot.latitude, lng: lot.longitude });
+    setRouteLoading(false);
+    if (!route) {
+      alert('Could not calculate route. Check your Mapbox token and network connection.');
+      return;
+    }
+    setNavigationTarget(lot);
+    setActiveRoute(route);
+    setNavPhase('navigating');
+    setSelectedLot(lot);
+    if (mapRef.current) {
+      mapRef.current.fitBounds(
+        [[Math.min(userLocation.lng, lot.longitude), Math.min(userLocation.lat, lot.latitude)],
+         [Math.max(userLocation.lng, lot.longitude), Math.max(userLocation.lat, lot.latitude)]],
+        { padding: 80, duration: 1500 }
+      );
+    }
+  }, [fetchRoute, userLocation]);
+
+  const stopNavigation = useCallback(() => {
+    setNavPhase('idle');
+    setNavigationTarget(null);
+    setActiveRoute(null);
+    setRerouteAlert(null);
+    if (pollRef.current) clearInterval(pollRef.current);
+  }, []);
+
+  const acceptReroute = useCallback(async (lot: ParkingAreaWithSlots) => {
+    setRerouteAlert(null);
+    await startNavigation(lot);
+  }, [startNavigation]);
 
   const selectedCarInfo = vehicles.find(c => c.id === selectedCar);
 
@@ -118,15 +250,25 @@ export function MapView() {
     }
   };
 
-  const filteredLots = lots.filter(lot =>
-      lot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lot.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLots = (() => {
+    if (searchCenter) {
+      return lots.filter(lot =>
+        calculateDistance(searchCenter.lat, searchCenter.lng, lot.latitude, lot.longitude) <= searchRadius
+      );
+    }
+    if (searchQuery.trim()) {
+      return lots.filter(lot =>
+        lot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lot.address.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return lots;
+  })();
 
   return (
-      <div className="min-h-[calc(100vh-73px)] flex flex-col lg:flex-row">
+      <div className="h-[calc(100vh-73px)] flex flex-col lg:flex-row overflow-hidden">
         {/* Map Section */}
-        <div className="flex-1 relative bg-gray-100">
+        <div className="flex-1 relative bg-gray-100 min-h-[300px]">
           <Map
               ref={mapRef}
               mapboxAccessToken={MAPBOX_TOKEN}
@@ -138,11 +280,29 @@ export function MapView() {
               mapStyle="mapbox://styles/mapbox/streets-v12"
               style={{ width: '100%', height: '100%', position: 'absolute' }}
           >
+            {/* Route line */}
+            {activeRoute && (
+              <Source id="route" type="geojson" data={activeRoute.geometry}>
+                <Layer
+                  id="route-line"
+                  type="line"
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                  paint={{ 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.85 }}
+                />
+              </Source>
+            )}
+
+            {/* User location dot */}
             <Marker longitude={userLocation.lng} latitude={userLocation.lat}>
-              <div className="w-4 h-4 bg-blue-600 rounded-full border-4 border-white shadow-lg" />
+              <div className="relative">
+                <div className="w-4 h-4 bg-blue-600 rounded-full border-4 border-white shadow-lg z-10 relative" />
+                <div className="absolute inset-0 w-4 h-4 bg-blue-400 rounded-full animate-ping opacity-60" />
+              </div>
             </Marker>
 
-            {filteredLots.map((lot) => (
+            {filteredLots.map((lot) => {
+              const isNavTarget = navigationTarget?.id === lot.id;
+              return (
                 <Marker
                     key={lot.id}
                     longitude={lot.longitude}
@@ -153,17 +313,26 @@ export function MapView() {
                     }}
                 >
                   <div className="relative transform transition-transform hover:scale-110 cursor-pointer">
+                    {isNavTarget && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-400 animate-ping opacity-50" />
+                      </div>
+                    )}
                     <MapPin
-                        className={`w-8 h-8 ${
+                        className={`w-8 h-8 relative z-10 ${
                             lot.status === 'full' ? 'text-red-500' :
-                                lot.status === 'reserved' ? 'text-yellow-500' :
+                                lot.status === 'busy' ? 'text-yellow-500' :
                                     'text-green-500'
                         } drop-shadow-lg`}
                         fill="currentColor"
                     />
+                    <span className="absolute -top-2 -right-2 bg-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow border border-gray-200 z-10">
+                      {lot.available}
+                    </span>
                   </div>
                 </Marker>
-            ))}
+              );
+            })}
           </Map>
 
           <div className="absolute top-4 left-4 right-4 z-10 flex items-start gap-3">
@@ -173,9 +342,19 @@ export function MapView() {
                   accessToken={MAPBOX_TOKEN}
                   map={mapRef.current?.getMap()}
                   popoverOptions={{ placement: 'bottom-start' }}
-                  placeholder="Search places or addresses..."
+                  placeholder="Search a location to find nearby parking..."
                   value={searchQuery}
-                  onChange={(searchStr) => setSearchQuery(searchStr)}
+                  onChange={(val) => {
+                    setSearchQuery(val);
+                    if (!val.trim()) setSearchCenter(null);
+                  }}
+                  onRetrieve={(result: any) => {
+                    const coords = result.features?.[0]?.geometry?.coordinates;
+                    if (coords) {
+                      setSearchCenter({ lat: coords[1], lng: coords[0] });
+                      setSearchRadius(1);
+                    }
+                  }}
                   theme={{
                     variables: {
                       fontFamily: 'inherit',
@@ -259,6 +438,36 @@ export function MapView() {
             </div>
           </div>
 
+          {/* Radius filter pill — shown after a location is selected */}
+          {searchCenter && (
+            <div className="absolute top-[4.5rem] left-4 z-10 bg-white rounded-xl shadow-lg px-3 py-2 flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">Radius:</span>
+              {[0.5, 1, 2, 5].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setSearchRadius(r)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    searchRadius === r
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {r}km
+                </button>
+              ))}
+              <span className="text-xs text-gray-400 ml-1">
+                {filteredLots.length} parking{filteredLots.length !== 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={() => { setSearchCenter(null); setSearchQuery(''); }}
+                className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                title="Clear location filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Legend */}
           <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3">
             <div className="flex flex-col gap-2">
@@ -268,7 +477,7 @@ export function MapView() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-yellow-500" fill="currentColor" />
-                <span className="text-sm">Reserved</span>
+                <span className="text-sm">Getting Busy</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-red-500" fill="currentColor" />
@@ -279,142 +488,292 @@ export function MapView() {
         </div>
 
         {/* Details Panel */}
-        <div className="w-full lg:w-96 bg-white border-l border-gray-200 overflow-y-auto">
-          {loading ? (
-            <div className="p-6 text-center text-gray-500">Loading parking areas...</div>
-          ) : selectedLot ? (
-              <div className="p-6">
-                <div className="mb-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <h2 className="font-bold">{selectedLot.name}</h2>
-                    <span
-                        className={`px-2 py-1 rounded text-xs ${
-                            selectedLot.status === 'full' ? 'bg-red-100 text-red-700' :
-                                selectedLot.status === 'reserved' ? 'bg-yellow-100 text-yellow-700' :
-                                    'bg-green-100 text-green-700'
-                        }`}
-                    >
-                  {selectedLot.status === 'full' ? 'Full' :
-                      selectedLot.status === 'reserved' ? 'Reserved' :
-                          'Available'}
-                </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{selectedLot.address}</p>
+        <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-[40vh] lg:h-auto">
+
+          {/* Rerouting alert banner */}
+          {rerouteAlert && (
+            <div className="bg-orange-50 border-b border-orange-200 p-4">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-800">{rerouteAlert.message}</p>
+                  <p className="text-xs text-orange-600 mt-0.5">
+                    Nearest alternative: <span className="font-medium">{rerouteAlert.suggestedLot.name}</span> ({rerouteAlert.suggestedLot.available} spots)
+                  </p>
                 </div>
-
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Available Spots</span>
-                    <span className="font-semibold">
-                  {selectedLot.available}/{selectedLot.total}
-                </span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Price per Hour</span>
-                    <span className="font-semibold">${selectedLot.hourlyRate}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Distance</span>
-                    <span className="font-semibold">
-                  {calculateDistance(
-                      userLocation.lat,
-                      userLocation.lng,
-                      selectedLot.latitude,
-                      selectedLot.longitude
-                  ).toFixed(1)} km
-                </span>
-                  </div>
-                </div>
-
-                {selectedLot.status === 'full' || selectedLot.available === 0 ? (
-                    <div>
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm text-red-800">
-                              This parking lot is currently full.
-                            </p>
-                            <p className="text-sm text-red-600 mt-1">
-                              We can redirect you to the nearest available parking.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                          onClick={() => handleReserve(selectedLot)}
-                          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Navigation className="w-4 h-4" />
-                        Find Nearest Parking
-                      </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => handleReserve(selectedLot)}
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Buy Parking Ticket
-                    </button>
-                )}
-
+              </div>
+              <div className="flex gap-2">
                 <button
-                    onClick={() => setSelectedLot(null)}
-                    className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => acceptReroute(rerouteAlert.suggestedLot)}
+                  className="flex-1 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
                 >
-                  Close
+                  <Navigation className="w-3.5 h-3.5" />
+                  Reroute
+                </button>
+                <button
+                  onClick={() => { setRerouteAlert(null); setNavPhase('navigating'); }}
+                  className="flex-1 border border-orange-300 text-orange-700 py-2 rounded-lg text-sm hover:bg-orange-50 transition-colors"
+                >
+                  Stay
                 </button>
               </div>
-          ) : (
-              <div className="p-6">
-                <h2 className="font-bold mb-4">All Parking Lots</h2>
-                {filteredLots.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500">No parking areas found</div>
-                ) : (
-                <div className="space-y-3">
-                  {filteredLots.map((lot) => (
-                      <button
-                          key={lot.id}
-                          onClick={() => {
-                            setSelectedLot(lot);
-                            if (mapRef.current) {
-                              mapRef.current.flyTo({ center: [lot.longitude, lot.latitude], zoom: 16, duration: 1500 });
-                            }
-                          }}
-                          className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-sm">{lot.name}</h3>
-                          <span
-                              className={`px-2 py-0.5 rounded text-xs ${
-                                  lot.status === 'full' ? 'bg-red-100 text-red-700' :
-                                      lot.status === 'reserved' ? 'bg-yellow-100 text-yellow-700' :
-                                          'bg-green-100 text-green-700'
-                              }`}
-                          >
-                      {lot.available} spots
-                    </span>
-                        </div>
-                        <p className="text-xs text-gray-600 mb-2">{lot.address}</p>
-                        <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">
-                      ${lot.hourlyRate}/hr
-                    </span>
-                          <span className="text-gray-500">
-                      {calculateDistance(
-                          userLocation.lat,
-                          userLocation.lng,
-                          lot.latitude,
-                          lot.longitude
-                      ).toFixed(1)} km
-                    </span>
-                        </div>
-                      </button>
-                  ))}
-                </div>
-                )}
-              </div>
+            </div>
           )}
+
+          {/* Active navigation panel */}
+          {navPhase !== 'idle' && navigationTarget && activeRoute && (
+            <div className="bg-blue-600 text-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Navigation className="w-4 h-4" />
+                  <span className="font-semibold text-sm">Navigating</span>
+                </div>
+                <button
+                  onClick={stopNavigation}
+                  className="w-7 h-7 bg-blue-700 hover:bg-blue-800 rounded-full flex items-center justify-center transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-sm font-medium mb-1 truncate">{navigationTarget.name}</p>
+              <div className="flex gap-4 text-xs text-blue-100">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {Math.round(activeRoute.durationS / 60)} min
+                </span>
+                <span>{(activeRoute.distanceM / 1000).toFixed(1)} km</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {navigationTarget.available} spots left
+                </span>
+              </div>
+              {activeRoute.steps[0] && (
+                <div className="mt-3 bg-blue-700 rounded-lg p-2 flex items-center gap-2">
+                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                  <p className="text-xs leading-tight">{activeRoute.steps[0].maneuver.instruction}</p>
+                </div>
+              )}
+              {navPhase === 'navigating' && (
+                <button
+                  onClick={() => {
+                    const alt = lots
+                      .filter(l => l.id !== navigationTarget.id && l.available > 0)
+                      .sort((a, b) =>
+                        calculateDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude) -
+                        calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+                      )[0];
+                    if (alt) {
+                      setNavPhase('rerouting');
+                      setRerouteAlert({
+                        message: `${navigationTarget.name} is getting full — only ${navigationTarget.available} spot${navigationTarget.available !== 1 ? 's' : ''} left!`,
+                        suggestedLot: alt,
+                      });
+                    }
+                  }}
+                  className="mt-2 text-xs text-blue-300 hover:text-white underline w-full text-center transition-colors"
+                >
+                  Simulate parking getting busy →
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-6 text-center text-gray-500">Loading parking areas...</div>
+            ) : selectedLot ? (
+                <div className="p-6">
+                  <div className="mb-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <h2 className="font-bold">{selectedLot.name}</h2>
+                      <span
+                          className={`px-2 py-1 rounded text-xs ${
+                              selectedLot.status === 'full' ? 'bg-red-100 text-red-700' :
+                                  selectedLot.status === 'busy' ? 'bg-yellow-100 text-yellow-700' :
+                                      'bg-green-100 text-green-700'
+                          }`}
+                      >
+                        {selectedLot.status === 'full' ? 'Full' :
+                            selectedLot.status === 'busy' ? 'Getting Busy' :
+                                'Available'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">{selectedLot.address}</p>
+                  </div>
+
+                  {/* Occupancy bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Occupancy</span>
+                      <span>{selectedLot.available}/{selectedLot.total} spots</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          selectedLot.status === 'full' ? 'bg-red-500' :
+                          selectedLot.status === 'busy' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${selectedLot.total > 0 ? ((selectedLot.total - selectedLot.available) / selectedLot.total) * 100 : 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 mb-6">
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <span className="text-sm text-gray-600">Price per Hour</span>
+                      <span className="font-semibold">€{selectedLot.hourlyRate}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <span className="text-sm text-gray-600">Distance</span>
+                      <span className="font-semibold">
+                        {calculateDistance(
+                            userLocation.lat,
+                            userLocation.lng,
+                            selectedLot.latitude,
+                            selectedLot.longitude
+                        ).toFixed(1)} km
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedLot.status === 'full' || selectedLot.available === 0 ? (
+                      <div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm text-red-800 font-medium">This parking lot is full.</p>
+                              <p className="text-sm text-red-600 mt-1">Navigate to the nearest available parking.</p>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                              const nearest = findNearestAvailable(selectedLot);
+                              if (nearest) startNavigation(nearest);
+                              else alert('No available parking lots nearby.');
+                            }}
+                            disabled={routeLoading}
+                            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                          <Navigation className="w-4 h-4" />
+                          {routeLoading ? 'Getting route...' : 'Navigate to Nearest'}
+                        </button>
+                      </div>
+                  ) : (
+                      <div className="flex flex-col gap-2">
+                        {selectedLot.status === 'busy' && (() => {
+                          const nearest = findNearestAvailable(selectedLot);
+                          return nearest ? (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-2">
+                              <div className="flex items-start gap-2 mb-3">
+                                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium text-yellow-800">This lot is getting busy.</p>
+                                  <p className="text-xs text-yellow-600 mt-0.5">
+                                    Nearest available: <span className="font-medium">{nearest.name}</span> — {nearest.available} spots, {calculateDistance(selectedLot.latitude, selectedLot.longitude, nearest.latitude, nearest.longitude).toFixed(1)} km away
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => startNavigation(nearest)}
+                                disabled={routeLoading}
+                                className="w-full bg-yellow-600 text-white py-2 rounded-lg text-sm hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                              >
+                                <Navigation className="w-3.5 h-3.5" />
+                                {routeLoading ? 'Getting route...' : `Navigate to ${nearest.name}`}
+                              </button>
+                            </div>
+                          ) : null;
+                        })()}
+                        {navPhase === 'idle' ? (
+                          <button
+                              onClick={() => startNavigation(selectedLot)}
+                              disabled={routeLoading}
+                              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                          >
+                            <Navigation className="w-4 h-4" />
+                            {routeLoading ? 'Getting route...' : 'Navigate Here'}
+                          </button>
+                        ) : (
+                          <button
+                              onClick={() => startNavigation(selectedLot)}
+                              disabled={routeLoading}
+                              className="w-full border border-blue-600 text-blue-600 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            {routeLoading ? 'Recalculating...' : 'Reroute Here'}
+                          </button>
+                        )}
+                        <button
+                            onClick={() => navigate(`/payment/${selectedLot.id}`)}
+                            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Buy Parking Ticket
+                        </button>
+                      </div>
+                  )}
+
+                  <button
+                      onClick={() => setSelectedLot(null)}
+                      className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+            ) : (
+                <div className="p-6">
+                  <h2 className="font-bold mb-4">Parking in Cluj-Napoca</h2>
+                  {filteredLots.length === 0 ? (
+                    <div className="py-8 text-center text-gray-500">No parking areas found</div>
+                  ) : (
+                  <div className="space-y-3">
+                    {filteredLots.map((lot) => (
+                        <button
+                            key={lot.id}
+                            onClick={() => {
+                              setSelectedLot(lot);
+                              if (mapRef.current) {
+                                mapRef.current.flyTo({ center: [lot.longitude, lot.latitude], zoom: 16, duration: 1500 });
+                              }
+                            }}
+                            className={`w-full text-left p-4 border rounded-lg hover:shadow-md transition-all ${
+                              navigationTarget?.id === lot.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-blue-500'
+                            }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-semibold text-sm">{lot.name}</h3>
+                            <span
+                                className={`px-2 py-0.5 rounded text-xs ${
+                                    lot.status === 'full' ? 'bg-red-100 text-red-700' :
+                                        lot.status === 'busy' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-green-100 text-green-700'
+                                }`}
+                            >
+                              {lot.available} spots
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-2">{lot.address}</p>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">€{lot.hourlyRate}/hr</span>
+                            <span className="text-gray-500">
+                              {calculateDistance(
+                                  userLocation.lat,
+                                  userLocation.lng,
+                                  lot.latitude,
+                                  lot.longitude
+                              ).toFixed(1)} km
+                            </span>
+                          </div>
+                        </button>
+                    ))}
+                  </div>
+                  )}
+                </div>
+            )}
+          </div>
         </div>
       </div>
   );

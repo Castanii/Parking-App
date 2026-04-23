@@ -18,11 +18,11 @@ export function Register() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Parolele nu coincid');
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Parola trebuie să aibă cel puțin 6 caractere');
       return;
     }
 
@@ -32,7 +32,7 @@ export function Register() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.data?.message || 'Înregistrarea a eșuat');
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export function Register() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-blue-600">ParkEasy</h1>
-          <p className="text-gray-600 mt-2">Create your account</p>
+          <p className="text-gray-600 mt-2">Creează-ți contul</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
@@ -61,31 +61,31 @@ export function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="you@example.com"
+              placeholder="tu@exemplu.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Password</label>
+            <label className="block text-sm mb-1">Parolă</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="At least 6 characters"
+              placeholder="Cel puțin 6 caractere"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Confirm Password</label>
+            <label className="block text-sm mb-1">Confirmă parola</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Repeat your password"
+              placeholder="Repetă parola"
             />
           </div>
 
@@ -95,13 +95,13 @@ export function Register() {
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Se creează contul...' : 'Crează cont'}
           </button>
 
           <p className="text-center text-sm text-gray-600">
-            Already have an account?{' '}
+            Ai deja cont?{' '}
             <Link to="/login" className="text-blue-600 hover:underline">
-              Sign in
+              Autentifică-te
             </Link>
           </p>
         </form>

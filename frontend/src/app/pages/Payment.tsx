@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getParkingArea, getAvailableSlots, type ParkingAreaResponse } from '../lib/parkingService';
 import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
 import { buyTicket } from '../lib/ticketService';
-import { Car, CreditCard, MapPin, Check } from 'lucide-react';
+import { Car, CreditCard, MapPin, Check, ArrowLeft } from 'lucide-react';
 
 export function Payment() {
   const { lotId } = useParams();
@@ -127,11 +127,18 @@ export function Payment() {
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <h2 className="font-semibold mb-4">Select Vehicle</h2>
         {vehicles.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-gray-500 mb-2">No vehicles added</p>
-            <button onClick={() => navigate('/profile')} className="text-blue-600 hover:underline text-sm">
-              Add a vehicle first
+          <div className="text-center py-6 bg-yellow-50 rounded-lg border border-yellow-200">
+            <Car className="w-10 h-10 text-yellow-500 mx-auto mb-3" />
+            <p className="text-gray-700 font-medium mb-1">No vehicles added yet</p>
+            <p className="text-sm text-gray-500 mb-4">You need at least one vehicle to buy a parking ticket.</p>
+            <button
+              onClick={() => navigate(`/profile?returnTo=/payment/${lotId}`)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <Car className="w-4 h-4" />
+              Add a Vehicle
             </button>
+            <p className="text-xs text-gray-400 mt-3">You'll be brought back here after adding.</p>
           </div>
         ) : (
           <div className="space-y-3">

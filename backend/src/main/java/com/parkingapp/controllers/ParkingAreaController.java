@@ -32,6 +32,11 @@ public class ParkingAreaController {
         return ResponseEntity.ok(parkingAreaService.getParkingAreaById(id));
     }
 
+    @GetMapping("/availability-summary")
+    public ResponseEntity<List<ParkingAreaService.AreaAvailabilityResponse>> getAvailabilitySummary() {
+        return ResponseEntity.ok(parkingAreaService.getAvailabilitySummary());
+    }
+
     @GetMapping("/nearby")
     public ResponseEntity<List<ParkingAreaService.ParkingAreaResponse>> findNearby(
             @RequestParam double lat,

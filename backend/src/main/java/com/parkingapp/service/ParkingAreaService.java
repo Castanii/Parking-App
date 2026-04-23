@@ -58,6 +58,29 @@ public class ParkingAreaService {
     }
 
     @Transactional(readOnly = true)
+    public List<AreaAvailabilityResponse> getAvailabilitySummary() {
+        return parkingAreaRepository.findAll().stream()
+                .map(area -> {
+                    List<ParkingSlot> slots = parkingSlotRepository.findAllByParkingAreaId(area.getId());
+                    long available = slots.stream()
+                            .filter(s -> s.getStatus() == ParkingSlotStatus.AVAILABLE)
+                            .count();
+                    return new AreaAvailabilityResponse(
+                            area.getId(),
+                            area.getName(),
+                            area.getAddress(),
+                            area.getCapacity(),
+                            area.getHourlyRate(),
+                            area.getLocation().getY(),
+                            area.getLocation().getX(),
+                            slots.size(),
+                            (int) available
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ParkingAreaResponse> findNearby(double latitude, double longitude, double radiusMeters) {
         Point searchCenter = buildPoint(longitude, latitude);
         double radiusInDegrees = radiusMeters / 111320.0;
@@ -125,6 +148,10 @@ public class ParkingAreaService {
 
     public record ParkingAreaResponse(
             UUID id, String name, String address, Integer capacity, Double hourlyRate, double latitude, double longitude) {}
+
+    public record AreaAvailabilityResponse(
+            UUID id, String name, String address, Integer capacity, Double hourlyRate,
+            double latitude, double longitude, int totalSlots, int availableSlots) {}
 
     public record SlotResponse(
             UUID id, String slotIdentifier, String status, String sizeCategory, Boolean hasEvCharging) {}

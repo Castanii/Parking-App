@@ -19,7 +19,7 @@ export function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      setError(err.response?.data?.message || 'Email sau parolă incorectă');
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-blue-600">ParkEasy</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <p className="text-gray-600 mt-2">Autentifică-te în contul tău</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
@@ -48,19 +48,19 @@ export function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="you@example.com"
+              placeholder="tu@exemplu.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Password</label>
+            <label className="block text-sm mb-1">Parolă</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your password"
+              placeholder="Introdu parola"
             />
           </div>
 
@@ -70,13 +70,13 @@ export function Login() {
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
           >
             <LogIn className="w-4 h-4" />
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Se autentifică...' : 'Autentificare'}
           </button>
 
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
+            Nu ai cont?{' '}
             <Link to="/register" className="text-blue-600 hover:underline">
-              Sign up
+              Înregistrează-te
             </Link>
           </p>
         </form>

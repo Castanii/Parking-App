@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { getVehicles, addVehicle, updateVehicle, deleteVehicle, type VehicleResponse } from '../lib/vehicleService';
-import { Car as CarIcon, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Car as CarIcon, Plus, Edit2, Trash2, Check, ArrowLeft } from 'lucide-react';
 
 export function Profile() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+
   const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(!!returnTo);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
@@ -37,6 +42,10 @@ export function Profile() {
       await addVehicle(user.id, form);
       setForm(emptyForm);
       setShowAddForm(false);
+      if (returnTo) {
+        navigate(returnTo);
+        return;
+      }
       fetchVehicles();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to add vehicle');
@@ -80,6 +89,14 @@ export function Profile() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {returnTo && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+          <span className="text-sm text-blue-700 font-medium">Add a vehicle below — you'll be sent back to complete your purchase.</span>
+          <button onClick={() => navigate(returnTo)} className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+            <ArrowLeft className="w-3 h-3" /> Back
+          </button>
+        </div>
+      )}
       <div className="mb-8">
         <h1 className="font-bold mb-2">My Profile</h1>
         <p className="text-gray-600">Manage your vehicles and account settings</p>
