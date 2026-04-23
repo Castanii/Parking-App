@@ -130,7 +130,7 @@ export function MapView() {
 
       const areasWithSlots: ParkingAreaWithSlots[] = summary.map((area) => {
         const occupancyPct = area.totalSlots > 0 ? (area.availableSlots / area.totalSlots) : 0;
-        const status = area.availableSlots === 0 ? 'full' : occupancyPct <= 0.2 ? 'busy' : 'available';
+        const status = area.availableSlots === 0 ? 'full' : occupancyPct <= BUSY_THRESHOLD ? 'busy' : 'available';
         return {
           ...area,
           available: area.availableSlots,
