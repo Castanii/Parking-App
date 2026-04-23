@@ -15,4 +15,6 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     List<Ticket> findAllByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, TicketStatus status);
 
     List<Ticket> findAllByStatusAndEndTimeBefore(TicketStatus status, LocalDateTime time);
+
+    boolean existsByVehicleIdAndStatus(UUID vehicleId, TicketStatus status);
 }

@@ -3,10 +3,12 @@ package com.parkingapp.service;
 import com.parkingapp.domain.Ticket;
 import com.parkingapp.domain.enums.ParkingSlotStatus;
 import com.parkingapp.domain.enums.TicketStatus;
+import com.parkingapp.domain.events.ParkingSlotUpdateEvent;
 import com.parkingapp.repository.ParkingSlotRepository;
 import com.parkingapp.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ public class TicketExpiryScheduler {
 
     private final TicketRepository ticketRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(fixedRate = 60000) // every 60 seconds
     @Transactional
@@ -36,6 +39,7 @@ public class TicketExpiryScheduler {
             slot.setStatus(ParkingSlotStatus.AVAILABLE);
             parkingSlotRepository.save(slot);
 
+            eventPublisher.publishEvent(new ParkingSlotUpdateEvent(ticket.getParkingArea().getId()));
             log.info("Auto-expired ticket {} and freed slot {}", ticket.getId(), slot.getSlotIdentifier());
         }
     }

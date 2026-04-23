@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { getParkingArea, getAvailableSlots, type ParkingAreaResponse } from '../lib/parkingService';
 import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
-import { buyTicket } from '../lib/ticketService';
-import { Car, CreditCard, MapPin, Check } from 'lucide-react';
+import { buyTicket, getActiveTickets, type TicketResponse } from '../lib/ticketService';
+import { useParkingWebSocket } from '../lib/parkingWebSocket';
+import { AlertTriangle, Car, CreditCard, MapPin, Check } from 'lucide-react';
 
 export function Payment() {
   const { lotId } = useParams();
@@ -13,6 +14,7 @@ export function Payment() {
 
   const [lot, setLot] = useState<ParkingAreaResponse | null>(null);
   const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
+  const [activeTickets, setActiveTickets] = useState<TicketResponse[]>([]);
   const [availableCount, setAvailableCount] = useState(0);
   const [selectedCar, setSelectedCar] = useState('');
   const [hours, setHours] = useState(2);
@@ -27,14 +29,25 @@ export function Payment() {
       getParkingArea(lotId),
       getVehicles(user.id),
       getAvailableSlots(lotId),
-    ]).then(([areaData, vehicleData, slots]) => {
+      getActiveTickets(user.id),
+    ]).then(([areaData, vehicleData, slots, tickets]) => {
       setLot(areaData);
       setVehicles(vehicleData);
       setAvailableCount(slots.length);
+      setActiveTickets(tickets);
       if (vehicleData.length > 0) setSelectedCar(vehicleData[0].id);
     }).catch(() => setError('Failed to load data'))
       .finally(() => setLoading(false));
   }, [user, lotId]);
+
+  useParkingWebSocket((update) => {
+    if (update.parkingAreaId === lotId) {
+      setAvailableCount(update.availableSlots);
+    }
+  });
+
+  const activeVehicleIds = new Set(activeTickets.map(t => t.vehicleId));
+  const selectedCarHasActiveTicket = !!selectedCar && activeVehicleIds.has(selectedCar);
 
   if (loading) {
     return <div className="max-w-2xl mx-auto px-4 py-8 text-center text-gray-500">Loading...</div>;
@@ -160,6 +173,11 @@ export function Payment() {
                     <div>
                       <p className="font-semibold">{car.licensePlate}</p>
                       <p className="text-sm text-gray-600">Category {car.vehicleCategory}{car.electric ? ' • Electric' : ''}</p>
+                      {activeVehicleIds.has(car.id) && (
+                        <span className="inline-flex items-center gap-1 mt-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                          <AlertTriangle className="w-3 h-3" /> Active session
+                        </span>
+                      )}
                     </div>
                   </div>
                   {selectedCar === car.id && <Check className="w-5 h-5 text-blue-600" />}
@@ -232,9 +250,19 @@ export function Payment() {
         </div>
       </div>
 
+      {selectedCarHasActiveTicket && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-lg flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-800">Active session detected</p>
+            <p className="text-sm text-amber-700 mt-0.5">This vehicle already has an active parking session. Please end it on the Tickets page before buying a new ticket.</p>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handlePayment}
-        disabled={processing || !selectedCar}
+        disabled={processing || !selectedCar || selectedCarHasActiveTicket}
         className="w-full bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
       >
         {processing ? 'Processing...' : `Pay $${totalPrice.toFixed(2)} and Get Ticket`}

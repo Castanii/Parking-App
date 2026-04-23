@@ -2,8 +2,10 @@ package com.parkingapp.service;
 
 import com.parkingapp.domain.*;
 import com.parkingapp.domain.enums.*;
+import com.parkingapp.domain.events.ParkingSlotUpdateEvent;
 import com.parkingapp.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class TicketService {
     private final ParkingSlotRepository parkingSlotRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TicketResponse buyTicket(BuyTicketRequest request, UUID userId) {
@@ -34,6 +37,10 @@ public class TicketService {
 
         if (!vehicle.getUser().getId().equals(userId)) {
             throw new IllegalStateException("You can only use your own vehicles.");
+        }
+
+        if (ticketRepository.existsByVehicleIdAndStatus(request.vehicleId(), TicketStatus.ACTIVE)) {
+            throw new IllegalStateException("This vehicle already has an active parking session.");
         }
 
         ParkingArea area = parkingAreaRepository.findById(request.parkingAreaId())
@@ -85,6 +92,8 @@ public class TicketService {
         payment.setTransactionId(UUID.randomUUID().toString());
         paymentRepository.save(payment);
 
+        eventPublisher.publishEvent(new ParkingSlotUpdateEvent(area.getId()));
+
         return mapToResponse(ticket);
     }
 
@@ -121,7 +130,9 @@ public class TicketService {
         slot.setStatus(ParkingSlotStatus.AVAILABLE);
         parkingSlotRepository.save(slot);
 
-        return mapToResponse(ticketRepository.save(ticket));
+        Ticket saved = ticketRepository.save(ticket);
+        eventPublisher.publishEvent(new ParkingSlotUpdateEvent(saved.getParkingArea().getId()));
+        return mapToResponse(saved);
     }
 
     @Transactional

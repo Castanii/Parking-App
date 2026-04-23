@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvailabilitySummary, getAvailableSlots, type AreaAvailabilitySummary } from '../lib/parkingService';
+import { useParkingWebSocket } from '../lib/parkingWebSocket';
 import { getVehicles, type VehicleResponse } from '../lib/vehicleService';
 import { Navigation, MapPin, AlertCircle, Car, ChevronDown, X, Clock, ArrowRight, RotateCcw } from 'lucide-react';
 
@@ -14,6 +15,15 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
 const CLUJ_CENTER = { lat: 46.7556635, lng: 23.57446 };
 const BUSY_THRESHOLD = 0.2;
 const POLL_INTERVAL_MS = 30_000;
+
+// A lot is "busy" when available slots ≤ max(1, 20% of total).
+// Using Math.max(1, ...) ensures small lots (2–4 slots) show yellow
+// instead of jumping straight from green to red.
+function computeLotStatus(available: number, total: number): 'available' | 'busy' | 'full' {
+  if (available === 0) return 'full';
+  if (available <= Math.max(1, Math.floor(total * BUSY_THRESHOLD))) return 'busy';
+  return 'available';
+}
 
 interface DirectionStep {
   maneuver: { instruction: string };
@@ -69,6 +79,45 @@ export function MapView() {
     loadData();
   }, [user]);
 
+  useParkingWebSocket((update) => {
+    const newStatus = computeLotStatus(update.availableSlots, update.totalSlots);
+
+    setLots(prev => prev.map(lot =>
+      lot.id === update.parkingAreaId
+        ? { ...lot, available: update.availableSlots, total: update.totalSlots, status: newStatus }
+        : lot
+    ));
+    setSelectedLot(prev =>
+      prev?.id === update.parkingAreaId
+        ? { ...prev, available: update.availableSlots, total: update.totalSlots, status: newStatus }
+        : prev
+    );
+    setNavigationTarget(prev =>
+      prev?.id === update.parkingAreaId
+        ? { ...prev, available: update.availableSlots, total: update.totalSlots, status: newStatus }
+        : prev
+    );
+
+    // Trigger reroute via WebSocket when navigation target becomes full or busy
+    if (navPhase === 'navigating' && navigationTarget?.id === update.parkingAreaId &&
+        (newStatus === 'full' || newStatus === 'busy')) {
+      const nearestAlternative = lots
+        .filter(l => l.id !== update.parkingAreaId && l.available > 0)
+        .sort((a, b) =>
+          calculateDistance(navigationTarget.latitude, navigationTarget.longitude, a.latitude, a.longitude) -
+          calculateDistance(navigationTarget.latitude, navigationTarget.longitude, b.latitude, b.longitude)
+        )[0];
+      if (nearestAlternative) {
+        setNavPhase('rerouting');
+        setRerouteAlert({
+          message: `Only ${update.availableSlots} spot${update.availableSlots !== 1 ? 's' : ''} left at ${navigationTarget.name}!`,
+          suggestedLot: nearestAlternative,
+        });
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }
+  });
+
   // Poll availability during active navigation and trigger rerouting
   useEffect(() => {
     if (navPhase !== 'navigating' || !navigationTarget) {
@@ -80,9 +129,7 @@ export function MapView() {
       try {
         const slots = await getAvailableSlots(navigationTarget.id);
         const available = slots.length;
-        const occupancyPct = navigationTarget.total > 0 ? available / navigationTarget.total : 1;
-        const status: ParkingAreaWithSlots['status'] =
-          available === 0 ? 'full' : occupancyPct <= BUSY_THRESHOLD ? 'busy' : 'available';
+        const status = computeLotStatus(available, navigationTarget.total);
 
         setLots(currentLots =>
           currentLots.map(lot =>
@@ -101,12 +148,12 @@ export function MapView() {
             ? { ...currentNavigationTarget, available, status }
             : currentNavigationTarget
         );
-        if (occupancyPct <= BUSY_THRESHOLD) {
+        if (status === 'busy' || status === 'full') {
           const nearestAlternative = lots
             .filter(l => l.id !== navigationTarget.id && l.available > 0)
             .sort((a, b) =>
-              calculateDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude) -
-              calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+              calculateDistance(navigationTarget.latitude, navigationTarget.longitude, a.latitude, a.longitude) -
+              calculateDistance(navigationTarget.latitude, navigationTarget.longitude, b.latitude, b.longitude)
             )[0];
 
           if (nearestAlternative) {
@@ -125,7 +172,7 @@ export function MapView() {
 
     pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [navPhase, navigationTarget, lots, userLocation]);
+  }, [navPhase, navigationTarget, lots]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -147,16 +194,12 @@ export function MapView() {
         getVehicles(user.id),
       ]);
 
-      const areasWithSlots: ParkingAreaWithSlots[] = summary.map((area) => {
-        const occupancyPct = area.totalSlots > 0 ? (area.availableSlots / area.totalSlots) : 0;
-        const status = area.availableSlots === 0 ? 'full' : occupancyPct <= BUSY_THRESHOLD ? 'busy' : 'available';
-        return {
-          ...area,
-          available: area.availableSlots,
-          total: area.totalSlots,
-          status,
-        };
-      });
+      const areasWithSlots: ParkingAreaWithSlots[] = summary.map((area) => ({
+        ...area,
+        available: area.availableSlots,
+        total: area.totalSlots,
+        status: computeLotStatus(area.availableSlots, area.totalSlots),
+      }));
 
       setLots(areasWithSlots);
       setVehicles(userVehicles);
@@ -247,9 +290,9 @@ export function MapView() {
     );
     if (availableLots.length === 0) return null;
     return availableLots.reduce((nearest, lot) => {
-      const distanceToCurrent = calculateDistance(currentLot.latitude, currentLot.longitude, lot.latitude, lot.longitude);
-      const distanceToNearest = calculateDistance(currentLot.latitude, currentLot.longitude, nearest.latitude, nearest.longitude);
-      return distanceToCurrent < distanceToNearest ? lot : nearest;
+      const distToLot = calculateDistance(userLocation.lat, userLocation.lng, lot.latitude, lot.longitude);
+      const distToNearest = calculateDistance(userLocation.lat, userLocation.lng, nearest.latitude, nearest.longitude);
+      return distToLot < distToNearest ? lot : nearest;
     });
   };
 

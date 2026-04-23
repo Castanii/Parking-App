@@ -13,7 +13,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserResponse | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp && payload.exp * 1000 < Date.now()) {
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
           setToken(null);
           setIsLoading(false);
           return;
@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getMe()
         .then((u) => setUser(u))
         .catch(() => {
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
           setToken(null);
         })
         .finally(() => setIsLoading(false));
@@ -45,13 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await loginApi(email, password);
-    localStorage.setItem('token', res.token);
+    sessionStorage.setItem('token', res.token);
     setToken(res.token);
     setUser(res.user);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
   };
