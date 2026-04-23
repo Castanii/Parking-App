@@ -132,7 +132,7 @@ export function Payment() {
             <p className="text-gray-700 font-medium mb-1">No vehicles added yet</p>
             <p className="text-sm text-gray-500 mb-4">You need at least one vehicle to buy a parking ticket.</p>
             <button
-              onClick={() => navigate(`/profile?returnTo=/payment/${lotId}`)}
+              onClick={() => navigate(lotId ? `/profile?returnTo=/payment/${lotId}` : '/profile')}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               <Car className="w-4 h-4" />
