@@ -15,4 +15,8 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, UUID> 
 
     List<ParkingSlot> findAllByParkingAreaIdAndStatusAndSizeCategory(
             UUID parkingAreaId, ParkingSlotStatus status, SizeCategory sizeCategory);
+
+    long countByParkingAreaIdAndStatus(UUID parkingAreaId, ParkingSlotStatus status);
+
+    long countByParkingAreaId(UUID parkingAreaId);
 }

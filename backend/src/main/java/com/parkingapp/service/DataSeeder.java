@@ -96,7 +96,115 @@ public class DataSeeder implements CommandLineRunner {
                 slot("C1-10", SizeCategory.LARGE, false)
         ));
 
-        log.info("Seeded 5 parking areas with {} total slots.", parkingAreaRepository.findAll().stream()
+        // --- Extended Cluj-Napoca coverage ---
+
+        // Close to Piata Unirii — good for reroute testing from center
+        createArea("Parcare Str. Memorandumului", "Strada Memorandumului 28, Cluj-Napoca", 20, 9.0, 23.5873, 46.7705, List.of(
+                slot("ME-01", SizeCategory.COMPACT, false),
+                slot("ME-02", SizeCategory.STANDARD, false),
+                slot("ME-03", SizeCategory.STANDARD, true)
+        ));
+
+        // Near Piata Unirii — tiny lot, fills up fast for testing
+        createArea("Parcare Tribunalului", "Strada Tribunalului 5, Cluj-Napoca", 10, 12.0, 23.5912, 46.7688, List.of(
+                slot("TR-01", SizeCategory.COMPACT, false),
+                slot("TR-02", SizeCategory.COMPACT, false)
+        ));
+
+        // Gara Cluj-Napoca — north of center
+        createArea("Parcare Gara Cluj-Napoca", "Piata Garii 1, Cluj-Napoca", 80, 6.0, 23.5912, 46.7803, List.of(
+                slot("GA-01", SizeCategory.STANDARD, false),
+                slot("GA-02", SizeCategory.STANDARD, false),
+                slot("GA-03", SizeCategory.LARGE, false),
+                slot("GA-04", SizeCategory.COMPACT, false),
+                slot("GA-05", SizeCategory.STANDARD, true),
+                slot("GA-06", SizeCategory.LARGE, true),
+                slot("GA-07", SizeCategory.COMPACT, false),
+                slot("GA-08", SizeCategory.STANDARD, false)
+        ));
+
+        // Harlequin Shopping Center — northeast
+        createArea("Parcare Harlequin", "Bulevardul 21 Decembrie 1989 77, Cluj-Napoca", 120, 7.0, 23.6010, 46.7726, List.of(
+                slot("HA-01", SizeCategory.COMPACT, false),
+                slot("HA-02", SizeCategory.COMPACT, false),
+                slot("HA-03", SizeCategory.STANDARD, false),
+                slot("HA-04", SizeCategory.STANDARD, true),
+                slot("HA-05", SizeCategory.LARGE, false),
+                slot("HA-06", SizeCategory.LARGE, true),
+                slot("HA-07", SizeCategory.STANDARD, false),
+                slot("HA-08", SizeCategory.COMPACT, false),
+                slot("HA-09", SizeCategory.STANDARD, false),
+                slot("HA-10", SizeCategory.LARGE, false)
+        ));
+
+        // Marasti — north, near Bulevardul Muncii
+        createArea("Parcare Marasti", "Bulevardul Muncii 18, Cluj-Napoca", 45, 5.0, 23.6008, 46.7779, List.of(
+                slot("MR-01", SizeCategory.STANDARD, false),
+                slot("MR-02", SizeCategory.STANDARD, false),
+                slot("MR-03", SizeCategory.COMPACT, false),
+                slot("MR-04", SizeCategory.COMPACT, true),
+                slot("MR-05", SizeCategory.LARGE, false),
+                slot("MR-06", SizeCategory.STANDARD, true)
+        ));
+
+        // Iulius Mall — south of center
+        createArea("Parcare Iulius Mall", "Calea Dorobantilor 1, Cluj-Napoca", 200, 4.0, 23.5928, 46.7452, List.of(
+                slot("IU-01", SizeCategory.COMPACT, false),
+                slot("IU-02", SizeCategory.COMPACT, false),
+                slot("IU-03", SizeCategory.STANDARD, false),
+                slot("IU-04", SizeCategory.STANDARD, true),
+                slot("IU-05", SizeCategory.LARGE, false),
+                slot("IU-06", SizeCategory.LARGE, true),
+                slot("IU-07", SizeCategory.STANDARD, false),
+                slot("IU-08", SizeCategory.STANDARD, false),
+                slot("IU-09", SizeCategory.COMPACT, true),
+                slot("IU-10", SizeCategory.LARGE, false),
+                slot("IU-11", SizeCategory.STANDARD, false),
+                slot("IU-12", SizeCategory.COMPACT, false)
+        ));
+
+        // Zorilor — southwest
+        createArea("Parcare Zorilor", "Calea Turzii 178, Cluj-Napoca", 30, 6.0, 23.5715, 46.7528, List.of(
+                slot("ZO-01", SizeCategory.STANDARD, false),
+                slot("ZO-02", SizeCategory.COMPACT, false),
+                slot("ZO-03", SizeCategory.COMPACT, true),
+                slot("ZO-04", SizeCategory.STANDARD, false)
+        ));
+
+        // Manastur — west
+        createArea("Parcare Manastur", "Calea Floresti 4, Cluj-Napoca", 50, 4.0, 23.5418, 46.7548, List.of(
+                slot("MA-01", SizeCategory.COMPACT, false),
+                slot("MA-02", SizeCategory.COMPACT, false),
+                slot("MA-03", SizeCategory.STANDARD, false),
+                slot("MA-04", SizeCategory.STANDARD, true),
+                slot("MA-05", SizeCategory.LARGE, false),
+                slot("MA-06", SizeCategory.STANDARD, false)
+        ));
+
+        // Vivo Cluj — far west, Calea Baciului
+        createArea("Parcare Vivo Cluj", "Calea Baciului 2E, Cluj-Napoca", 300, 3.0, 23.5433, 46.7521, List.of(
+                slot("VI-01", SizeCategory.COMPACT, false),
+                slot("VI-02", SizeCategory.COMPACT, true),
+                slot("VI-03", SizeCategory.STANDARD, false),
+                slot("VI-04", SizeCategory.STANDARD, false),
+                slot("VI-05", SizeCategory.LARGE, false),
+                slot("VI-06", SizeCategory.LARGE, true),
+                slot("VI-07", SizeCategory.STANDARD, false),
+                slot("VI-08", SizeCategory.COMPACT, false),
+                slot("VI-09", SizeCategory.STANDARD, true),
+                slot("VI-10", SizeCategory.LARGE, false)
+        ));
+
+        // Grigorescu — east
+        createArea("Parcare Grigorescu", "Strada Mehedinti 3, Cluj-Napoca", 25, 7.0, 23.6148, 46.7625, List.of(
+                slot("GR-01", SizeCategory.STANDARD, false),
+                slot("GR-02", SizeCategory.COMPACT, false),
+                slot("GR-03", SizeCategory.COMPACT, true),
+                slot("GR-04", SizeCategory.STANDARD, false),
+                slot("GR-05", SizeCategory.LARGE, false)
+        ));
+
+        log.info("Seeded 15 parking areas with {} total slots.", parkingAreaRepository.findAll().stream()
                 .mapToInt(a -> a.getParkingSlots().size()).sum());
     }
 
