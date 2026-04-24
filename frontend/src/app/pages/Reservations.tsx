@@ -36,7 +36,7 @@ export function Reservations() {
       const data = await getUserReservations(user.id);
       setReservations(data);
     } catch {
-      setError('Failed to load reservations');
+      setError('Nu s-au putut încărca rezervările');
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export function Reservations() {
       });
       setShowNewForm(true);
     } catch {
-      setError('Failed to load data');
+      setError('Nu s-au putut încărca datele');
     }
   };
 
@@ -78,7 +78,7 @@ export function Reservations() {
       setShowNewForm(false);
       fetchReservations();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create reservation');
+      setError(err.response?.data?.message || 'Nu s-a putut crea rezervarea');
     }
   };
 
@@ -88,7 +88,7 @@ export function Reservations() {
       await cancelReservation(id);
       fetchReservations();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to cancel reservation');
+      setError(err.response?.data?.message || 'Nu s-a putut anula rezervarea');
     }
   };
 
@@ -98,7 +98,7 @@ export function Reservations() {
       await convertReservation(id);
       navigate('/tickets');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to start parking');
+      setError(err.response?.data?.message || 'Nu s-a putut începe parcarea');
     }
   };
 
@@ -127,22 +127,22 @@ export function Reservations() {
   const pastReservations = reservations.filter(r => r.status !== 'CONFIRMED');
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-500">Loading reservations...</div>;
+    return <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-500">Se încarcă rezervările...</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-bold mb-2">My Reservations</h1>
-          <p className="text-gray-600">Manage your active and past parking reservations</p>
+          <h1 className="font-bold mb-2">Rezervările mele</h1>
+          <p className="text-gray-600">Gestionează rezervările de parcare active și trecute</p>
         </div>
         <button
           onClick={openNewForm}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          New Reservation
+          Rezervare nouă
         </button>
       </div>
 
@@ -154,14 +154,14 @@ export function Reservations() {
       {showNewForm && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">New Reservation</h2>
+            <h2 className="font-semibold">Rezervare nouă</h2>
             <button onClick={() => setShowNewForm(false)} className="p-1 hover:bg-gray-100 rounded">
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm mb-1">Parking Area</label>
+              <label className="block text-sm mb-1">Zonă de parcare</label>
               <select
                 value={form.parkingAreaId}
                 onChange={(e) => setForm({ ...form, parkingAreaId: e.target.value })}
@@ -173,7 +173,7 @@ export function Reservations() {
               </select>
             </div>
             <div>
-              <label className="block text-sm mb-1">Vehicle</label>
+              <label className="block text-sm mb-1">Vehicul</label>
               <select
                 value={form.vehicleId}
                 onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
@@ -185,7 +185,7 @@ export function Reservations() {
               </select>
             </div>
             <div>
-              <label className="block text-sm mb-1">Start Time</label>
+              <label className="block text-sm mb-1">Oră start</label>
               <input
                 type="datetime-local"
                 value={form.scheduledStart}
@@ -194,7 +194,7 @@ export function Reservations() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">End Time</label>
+              <label className="block text-sm mb-1">Oră final</label>
               <input
                 type="datetime-local"
                 value={form.scheduledEnd}
@@ -207,7 +207,7 @@ export function Reservations() {
             onClick={handleCreate}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Create Reservation
+            Creează rezervarea
           </button>
         </div>
       )}
@@ -215,7 +215,7 @@ export function Reservations() {
       {/* Active Reservations */}
       {activeReservations.length > 0 && (
         <div className="mb-8">
-          <h2 className="font-semibold mb-4">Active Reservations</h2>
+          <h2 className="font-semibold mb-4">Rezervări active</h2>
           <div className="space-y-4">
             {activeReservations.map((reservation) => {
               const isExpiringSoon = new Date(reservation.scheduledEnd).getTime() - Date.now() < 15 * 60 * 1000;
@@ -245,7 +245,7 @@ export function Reservations() {
                         isExpiringSoon ? 'bg-orange-200 text-orange-800' : 'bg-green-200 text-green-800'
                       }`}
                     >
-                      Confirmed
+                      Confirmat
                     </span>
                   </div>
 
@@ -253,7 +253,7 @@ export function Reservations() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Clock className={`w-5 h-5 ${isExpiringSoon ? 'text-orange-600' : 'text-green-600'}`} />
-                        <span className="font-semibold">Time until end:</span>
+                        <span className="font-semibold">Timp până la final:</span>
                       </div>
                       <span className={`font-mono font-bold ${isExpiringSoon ? 'text-orange-700' : 'text-green-700'}`}>
                         {getRemainingTime(reservation.scheduledEnd)}
@@ -269,13 +269,13 @@ export function Reservations() {
 
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                     <div>
-                      <span className="text-sm text-gray-600">Start Time</span>
+                      <span className="text-sm text-gray-600">Oră start</span>
                       <p className="font-medium">
                         {new Date(reservation.scheduledStart).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-600">End Time</span>
+                      <span className="text-sm text-gray-600">Oră final</span>
                       <p className="font-medium">
                         {new Date(reservation.scheduledEnd).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </p>
@@ -288,14 +288,14 @@ export function Reservations() {
                         onClick={() => handleConvert(reservation.id)}
                         className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
-                        Start Parking Now
+                        Începe parcarea acum
                       </button>
                     )}
                     <button
                       onClick={() => handleCancel(reservation.id)}
                       className={`px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors ${startingSoon ? '' : 'flex-1'}`}
                     >
-                      Cancel
+                      Anulează
                     </button>
                   </div>
                 </div>
@@ -307,7 +307,7 @@ export function Reservations() {
 
       {/* Past Reservations */}
       <div>
-        <h2 className="font-semibold mb-4">Past Reservations</h2>
+        <h2 className="font-semibold mb-4">Rezervări trecute</h2>
         {pastReservations.length > 0 ? (
           <div className="space-y-3">
             {pastReservations.map((reservation) => (
@@ -349,7 +349,7 @@ export function Reservations() {
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">No past reservations</p>
+            <p className="text-gray-600">Nicio rezervare trecută</p>
           </div>
         )}
       </div>
@@ -357,12 +357,12 @@ export function Reservations() {
       {activeReservations.length === 0 && pastReservations.length === 0 && !showNewForm && (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No reservations yet</p>
+          <p className="text-gray-600 mb-4">Nicio rezervare</p>
           <button
             onClick={openNewForm}
             className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Create Your First Reservation
+            Creează prima ta rezervare
           </button>
         </div>
       )}

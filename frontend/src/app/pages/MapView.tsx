@@ -110,7 +110,7 @@ export function MapView() {
       if (nearestAlternative) {
         setNavPhase('rerouting');
         setRerouteAlert({
-          message: `Only ${update.availableSlots} spot${update.availableSlots !== 1 ? 's' : ''} left at ${navigationTarget.name}!`,
+          message: `Doar ${update.availableSlots} ${update.availableSlots !== 1 ? 'locuri rămase' : 'loc rămas'} la ${navigationTarget.name}!`,
           suggestedLot: nearestAlternative,
         });
         if (pollRef.current) clearInterval(pollRef.current);
@@ -159,7 +159,7 @@ export function MapView() {
           if (nearestAlternative) {
             setNavPhase('rerouting');
             setRerouteAlert({
-              message: `Only ${available} spot${available !== 1 ? 's' : ''} left at ${navigationTarget.name}!`,
+              message: `Doar ${available} ${available !== 1 ? 'locuri rămase' : 'loc rămas'} la ${navigationTarget.name}!`,
               suggestedLot: nearestAlternative,
             });
             if (pollRef.current) clearInterval(pollRef.current);
@@ -241,7 +241,7 @@ export function MapView() {
     const route = await fetchRoute(userLocation, { lat: lot.latitude, lng: lot.longitude });
     setRouteLoading(false);
     if (!route) {
-      alert('Could not calculate route. Check your Mapbox token and network connection.');
+      alert('Nu s-a putut calcula ruta. Verificați tokenul Mapbox și conexiunea la rețea.');
       return;
     }
     setNavigationTarget(lot);
@@ -305,7 +305,7 @@ export function MapView() {
           mapRef.current.flyTo({ center: [nearest.longitude, nearest.latitude], zoom: 16, duration: 1500 });
         }
       } else {
-        alert('No available parking lots nearby.');
+        alert('Nicio parcare disponibilă în apropiere.');
       }
     } else {
       navigate(`/payment/${lot.id}`);
@@ -404,7 +404,7 @@ export function MapView() {
                   accessToken={MAPBOX_TOKEN}
                   map={mapRef.current?.getMap()}
                   popoverOptions={{ placement: 'bottom-start' }}
-                  placeholder="Search a location to find nearby parking..."
+                  placeholder="Caută o locație pentru a găsi parcări..."
                   value={searchQuery}
                   onChange={(val) => {
                     setSearchQuery(val);
@@ -441,7 +441,7 @@ export function MapView() {
                   {selectedCarInfo ? (
                       <p className="font-semibold text-sm whitespace-nowrap">{selectedCarInfo.licensePlate}</p>
                   ) : (
-                      <p className="text-sm text-gray-500 whitespace-nowrap">No vehicle</p>
+                      <p className="text-sm text-gray-500 whitespace-nowrap">Fără vehicul</p>
                   )}
                 </div>
                 <ChevronDown
@@ -478,7 +478,7 @@ export function MapView() {
                             </div>
                             <div>
                               <p className="font-medium text-sm">{car.licensePlate}</p>
-                              <p className="text-xs text-gray-600">Category {car.vehicleCategory}{car.electric ? ' • EV' : ''}</p>
+                              <p className="text-xs text-gray-600">Categorie {car.vehicleCategory}{car.electric ? ' • EV' : ''}</p>
                             </div>
                           </div>
                         </button>
@@ -486,12 +486,12 @@ export function MapView() {
 
                     {vehicles.length === 0 && (
                         <div className="p-4 text-center">
-                          <p className="text-sm text-gray-500 mb-2">No vehicles added</p>
+                          <p className="text-sm text-gray-500 mb-2">Niciun vehicul adăugat</p>
                           <button
                               onClick={() => navigate('/profile')}
                               className="text-sm text-blue-600 hover:underline"
                           >
-                            Add a vehicle
+                            Adaugă un vehicul
                           </button>
                         </div>
                     )}
@@ -503,7 +503,7 @@ export function MapView() {
           {/* Radius filter pill — shown after a location is selected */}
           {searchCenter && (
             <div className="absolute top-[4.5rem] left-4 z-10 bg-white rounded-xl shadow-lg px-3 py-2 flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium">Radius:</span>
+              <span className="text-xs text-gray-500 font-medium">Rază:</span>
               {[0.5, 1, 2, 5].map(r => (
                 <button
                   key={r}
@@ -518,12 +518,12 @@ export function MapView() {
                 </button>
               ))}
               <span className="text-xs text-gray-400 ml-1">
-                {filteredLots.length} parking{filteredLots.length !== 1 ? 's' : ''}
+                {filteredLots.length} {filteredLots.length !== 1 ? 'parcări' : 'parcare'}
               </span>
               <button
                 onClick={() => { setSearchCenter(null); setSearchQuery(''); }}
                 className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
-                title="Clear location filter"
+                title="Șterge filtrul de locație"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -535,15 +535,15 @@ export function MapView() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-green-500" fill="currentColor" />
-                <span className="text-sm">Available</span>
+                <span className="text-sm">Disponibil</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-yellow-500" fill="currentColor" />
-                <span className="text-sm">Getting Busy</span>
+                <span className="text-sm">Se aglomerează</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-red-500" fill="currentColor" />
-                <span className="text-sm">Full</span>
+                <span className="text-sm">Complet</span>
               </div>
             </div>
           </div>
@@ -560,7 +560,7 @@ export function MapView() {
                 <div>
                   <p className="text-sm font-semibold text-orange-800">{rerouteAlert.message}</p>
                   <p className="text-xs text-orange-600 mt-0.5">
-                    Nearest alternative: <span className="font-medium">{rerouteAlert.suggestedLot.name}</span> ({rerouteAlert.suggestedLot.available} spots)
+                    Alternativa cea mai apropiată: <span className="font-medium">{rerouteAlert.suggestedLot.name}</span> ({rerouteAlert.suggestedLot.available} locuri)
                   </p>
                 </div>
               </div>
@@ -570,13 +570,13 @@ export function MapView() {
                   className="flex-1 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
                 >
                   <Navigation className="w-3.5 h-3.5" />
-                  Reroute
+                  Reredirecționează
                 </button>
                 <button
                   onClick={() => { setRerouteAlert(null); setNavPhase('navigating'); }}
                   className="flex-1 border border-orange-300 text-orange-700 py-2 rounded-lg text-sm hover:bg-orange-50 transition-colors"
                 >
-                  Stay
+                  Rămâi
                 </button>
               </div>
             </div>
@@ -588,7 +588,7 @@ export function MapView() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Navigation className="w-4 h-4" />
-                  <span className="font-semibold text-sm">Navigating</span>
+                  <span className="font-semibold text-sm">Navigare</span>
                 </div>
                 <button
                   onClick={stopNavigation}
@@ -606,7 +606,7 @@ export function MapView() {
                 <span>{(activeRoute.distanceM / 1000).toFixed(1)} km</span>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
-                  {navigationTarget.available} spots left
+                  {navigationTarget.available} locuri rămase
                 </span>
               </div>
               {activeRoute.steps[0] && (
@@ -621,20 +621,20 @@ export function MapView() {
                     const alt = lots
                       .filter(l => l.id !== navigationTarget.id && l.available > 0)
                       .sort((a, b) =>
-                        calculateDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude) -
-                        calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+                        calculateDistance(navigationTarget.latitude, navigationTarget.longitude, a.latitude, a.longitude) -
+                        calculateDistance(navigationTarget.latitude, navigationTarget.longitude, b.latitude, b.longitude)
                       )[0];
                     if (alt) {
                       setNavPhase('rerouting');
                       setRerouteAlert({
-                        message: `${navigationTarget.name} is getting full — only ${navigationTarget.available} spot${navigationTarget.available !== 1 ? 's' : ''} left!`,
+                        message: `${navigationTarget.name} se umple — doar ${navigationTarget.available} ${navigationTarget.available !== 1 ? 'locuri rămase' : 'loc rămas'}!`,
                         suggestedLot: alt,
                       });
                     }
                   }}
                   className="mt-2 text-xs text-blue-300 hover:text-white underline w-full text-center transition-colors"
                 >
-                  Simulate parking getting busy →
+                  Simulează parcare aglomerată →
                 </button>
               )}
             </div>
@@ -642,7 +642,7 @@ export function MapView() {
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="p-6 text-center text-gray-500">Loading parking areas...</div>
+              <div className="p-6 text-center text-gray-500">Se încarcă zonele de parcare...</div>
             ) : selectedLot ? (
                 <div className="p-6">
                   <div className="mb-6">
@@ -655,9 +655,9 @@ export function MapView() {
                                       'bg-green-100 text-green-700'
                           }`}
                       >
-                        {selectedLot.status === 'full' ? 'Full' :
-                            selectedLot.status === 'busy' ? 'Getting Busy' :
-                                'Available'}
+                        {selectedLot.status === 'full' ? 'Complet' :
+                            selectedLot.status === 'busy' ? 'Se aglomerează' :
+                                'Disponibil'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">{selectedLot.address}</p>
@@ -666,8 +666,8 @@ export function MapView() {
                   {/* Occupancy bar */}
                   <div className="mb-4">
                     <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Occupancy</span>
-                      <span>{selectedLot.available}/{selectedLot.total} spots</span>
+                      <span>Ocupare</span>
+                      <span>{selectedLot.available}/{selectedLot.total} locuri</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -682,11 +682,11 @@ export function MapView() {
 
                   <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Price per Hour</span>
+                      <span className="text-sm text-gray-600">Preț pe oră</span>
                       <span className="font-semibold">€{selectedLot.hourlyRate}</span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Distance</span>
+                      <span className="text-sm text-gray-600">Distanță</span>
                       <span className="font-semibold">
                         {calculateDistance(
                             userLocation.lat,
@@ -704,8 +704,8 @@ export function MapView() {
                           <div className="flex items-start gap-2">
                             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-sm text-red-800 font-medium">This parking lot is full.</p>
-                              <p className="text-sm text-red-600 mt-1">Navigate to the nearest available parking.</p>
+                              <p className="text-sm text-red-800 font-medium">Această parcare este plină.</p>
+                              <p className="text-sm text-red-600 mt-1">Navighează la cea mai apropiată parcare disponibilă.</p>
                             </div>
                           </div>
                         </div>
@@ -713,13 +713,13 @@ export function MapView() {
                             onClick={() => {
                               const nearest = findNearestAvailable(selectedLot);
                               if (nearest) startNavigation(nearest);
-                              else alert('No available parking lots nearby.');
+                              else alert('Nicio parcare disponibilă în apropiere.');
                             }}
                             disabled={routeLoading}
                             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                         >
                           <Navigation className="w-4 h-4" />
-                          {routeLoading ? 'Getting route...' : 'Navigate to Nearest'}
+                          {routeLoading ? 'Se calculează ruta...' : 'Navighează la cel mai apropiat'}
                         </button>
                       </div>
                   ) : (
@@ -731,9 +731,9 @@ export function MapView() {
                               <div className="flex items-start gap-2 mb-3">
                                 <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                                 <div>
-                                  <p className="text-sm font-medium text-yellow-800">This lot is getting busy.</p>
+                                  <p className="text-sm font-medium text-yellow-800">Această parcare se aglomerează.</p>
                                   <p className="text-xs text-yellow-600 mt-0.5">
-                                    Nearest available: <span className="font-medium">{nearest.name}</span> — {nearest.available} spots, {calculateDistance(selectedLot.latitude, selectedLot.longitude, nearest.latitude, nearest.longitude).toFixed(1)} km away
+                                    Cea mai apropiată disponibilă: <span className="font-medium">{nearest.name}</span> — {nearest.available} locuri, {calculateDistance(selectedLot.latitude, selectedLot.longitude, nearest.latitude, nearest.longitude).toFixed(1)} km distanță
                                   </p>
                                 </div>
                               </div>
@@ -743,7 +743,7 @@ export function MapView() {
                                 className="w-full bg-yellow-600 text-white py-2 rounded-lg text-sm hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                               >
                                 <Navigation className="w-3.5 h-3.5" />
-                                {routeLoading ? 'Getting route...' : `Navigate to ${nearest.name}`}
+                                {routeLoading ? 'Se calculează ruta...' : `Navighează spre ${nearest.name}`}
                               </button>
                             </div>
                           ) : null;
@@ -755,7 +755,7 @@ export function MapView() {
                               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                           >
                             <Navigation className="w-4 h-4" />
-                            {routeLoading ? 'Getting route...' : 'Navigate Here'}
+                            {routeLoading ? 'Se calculează ruta...' : 'Navighează'}
                           </button>
                         ) : (
                           <button
@@ -764,14 +764,14 @@ export function MapView() {
                               className="w-full border border-blue-600 text-blue-600 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                           >
                             <RotateCcw className="w-4 h-4" />
-                            {routeLoading ? 'Recalculating...' : 'Reroute Here'}
+                            {routeLoading ? 'Se recalculează...' : 'Reredirecționează'}
                           </button>
                         )}
                         <button
                             onClick={() => navigate(`/payment/${selectedLot.id}`)}
                             className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors"
                         >
-                          Buy Parking Ticket
+                          Cumpără tichet de parcare
                         </button>
                       </div>
                   )}
@@ -780,14 +780,14 @@ export function MapView() {
                       onClick={() => setSelectedLot(null)}
                       className="w-full mt-3 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    Close
+                    Închide
                   </button>
                 </div>
             ) : (
                 <div className="p-6">
-                  <h2 className="font-bold mb-4">Parking in Cluj-Napoca</h2>
+                  <h2 className="font-bold mb-4">Parcări în Cluj-Napoca</h2>
                   {filteredLots.length === 0 ? (
-                    <div className="py-8 text-center text-gray-500">No parking areas found</div>
+                    <div className="py-8 text-center text-gray-500">Nicio zonă de parcare găsită</div>
                   ) : (
                   <div className="space-y-3">
                     {filteredLots.map((lot) => (
@@ -814,7 +814,7 @@ export function MapView() {
                                             'bg-green-100 text-green-700'
                                 }`}
                             >
-                              {lot.available} spots
+                              {lot.available} locuri
                             </span>
                           </div>
                           <p className="text-xs text-gray-600 mb-2">{lot.address}</p>
