@@ -570,7 +570,7 @@ export function MapView() {
                   className="flex-1 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
                 >
                   <Navigation className="w-3.5 h-3.5" />
-                  Reredirecționează
+                  Redirecționează
                 </button>
                 <button
                   onClick={() => { setRerouteAlert(null); setNavPhase('navigating'); }}
@@ -764,7 +764,7 @@ export function MapView() {
                               className="w-full border border-blue-600 text-blue-600 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                           >
                             <RotateCcw className="w-4 h-4" />
-                            {routeLoading ? 'Se recalculează...' : 'Reredirecționează'}
+                            {routeLoading ? 'Se recalculează...' : 'Redirecționează'}
                           </button>
                         )}
                         <button
