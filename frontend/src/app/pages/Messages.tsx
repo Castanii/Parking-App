@@ -6,7 +6,7 @@ import {
   sendMessage,
   type MessageResponse,
 } from '../lib/messageService';
-import { MessageSquare, Send, Inbox, Plus, X } from 'lucide-react';
+import { Send, Inbox, Plus, X } from 'lucide-react';
 
 interface ThreadPreview {
   threadId: string;
@@ -55,7 +55,7 @@ export function Messages() {
       previews.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
       setThreads(previews);
     } catch {
-      setError('Failed to load messages');
+      setError('Nu s-au putut încărca mesajele');
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export function Messages() {
       const msgs = await getThread(threadId);
       setThreadMessages(msgs);
     } catch {
-      setError('Failed to load thread');
+      setError('Nu s-a putut încărca conversația');
     }
   };
 
@@ -90,7 +90,7 @@ export function Messages() {
       handleSelectThread(selectedThread);
       fetchMessages();
     } catch {
-      setError('Failed to send reply');
+      setError('Nu s-a putut trimite răspunsul');
     }
   };
 
@@ -105,21 +105,21 @@ export function Messages() {
       fetchMessages();
       handleSelectThread(msg.threadId);
     } catch {
-      setError('Failed to send message');
+      setError('Nu s-a putut trimite mesajul');
     }
   };
 
   const unreadCount = threads.filter(t => t.hasUnread).length;
 
   if (loading) {
-    return <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500">Loading messages...</div>;
+    return <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500">Se încarcă mesajele...</div>;
   }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="font-bold mb-2">Messages</h1>
-        <p className="text-gray-600">Communicate with parking support and manage notifications</p>
+        <h1 className="font-bold mb-2">Mesaje</h1>
+        <p className="text-gray-600">Comunică cu suportul și gestionează notificările</p>
       </div>
 
       {error && (
@@ -164,7 +164,7 @@ export function Messages() {
               {threads.length === 0 && (
                 <div className="p-8 text-center text-gray-400">
                   <Inbox className="w-8 h-8 mx-auto mb-2" />
-                  <p className="text-sm">No messages yet</p>
+                  <p className="text-sm">Niciun mesaj</p>
                 </div>
               )}
             </div>
@@ -176,29 +176,29 @@ export function Messages() {
           {showNewMessage ? (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold">New Message</h2>
+                <h2 className="font-bold">Mesaj nou</h2>
                 <button onClick={() => setShowNewMessage(false)} className="p-1 hover:bg-gray-100 rounded">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm mb-1">Subject</label>
+                  <label className="block text-sm mb-1">Subiect</label>
                   <input
                     type="text"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    placeholder="What do you need help with?"
+                    placeholder="Cu ce te putem ajuta?"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Message</label>
+                  <label className="block text-sm mb-1">Mesaj</label>
                   <textarea
                     value={newBody}
                     onChange={(e) => setNewBody(e.target.value)}
                     rows={6}
-                    placeholder="Describe your issue or question..."
+                    placeholder="Descrie problema sau întrebarea ta..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                 </div>
@@ -207,7 +207,7 @@ export function Messages() {
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
                   <Send className="w-4 h-4" />
-                  Send Message
+                  Trimite mesajul
                 </button>
               </div>
             </div>
@@ -215,13 +215,13 @@ export function Messages() {
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="font-bold mb-2">{threads.find(t => t.threadId === selectedThread)?.subject}</h2>
-                <p className="text-sm text-gray-600">{threadMessages.length} message{threadMessages.length > 1 ? 's' : ''}</p>
+                <p className="text-sm text-gray-600">{threadMessages.length} {threadMessages.length === 1 ? 'mesaj' : 'mesaje'}</p>
               </div>
               <div className="p-6 flex-1 space-y-4 max-h-[400px] overflow-y-auto">
                 {threadMessages.map((msg) => (
                   <div key={msg.id} className={`p-4 rounded-lg ${msg.fromSupport ? 'bg-blue-50 ml-0 mr-8' : 'bg-gray-50 ml-8 mr-0'}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{msg.fromSupport ? 'Support' : msg.senderName}</span>
+                      <span className="text-sm font-medium">{msg.fromSupport ? 'Suport' : msg.senderName}</span>
                       <span className="text-xs text-gray-400">
                         {new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </span>
@@ -237,7 +237,7 @@ export function Messages() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleReply()}
-                    placeholder="Type your reply..."
+                    placeholder="Scrie răspunsul..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
@@ -245,7 +245,7 @@ export function Messages() {
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
                     <Send className="w-4 h-4" />
-                    Send
+                    Trimite
                   </button>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export function Messages() {
             <div className="bg-white rounded-lg border border-gray-200 h-[600px] flex items-center justify-center">
               <div className="text-center text-gray-400">
                 <Inbox className="w-16 h-16 mx-auto mb-4" />
-                <p>Select a message to view</p>
+                <p>Selectează un mesaj pentru a-l citi</p>
               </div>
             </div>
           )}
@@ -269,7 +269,7 @@ export function Messages() {
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            New Message
+            Mesaj nou
           </button>
         </div>
       )}

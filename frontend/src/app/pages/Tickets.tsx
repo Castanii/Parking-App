@@ -9,7 +9,7 @@ import {
   type TicketResponse,
   type PaymentResponse,
 } from '../lib/ticketService';
-import { Clock, MapPin, Car, Ticket as TicketIcon, Calendar, CreditCard } from 'lucide-react';
+import { Clock, Car, Ticket as TicketIcon, Calendar, CreditCard } from 'lucide-react';
 
 export function Tickets() {
   const { user } = useAuth();
@@ -50,7 +50,7 @@ export function Tickets() {
 
   const getRemainingTime = (endTime: string) => {
     const diff = new Date(endTime).getTime() - Date.now();
-    if (diff <= 0) return 'Expired';
+    if (diff <= 0) return 'Expirat';
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
@@ -87,19 +87,19 @@ export function Tickets() {
   };
 
   if (loading) {
-    return <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500">Loading tickets...</div>;
+    return <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500">Se încarcă tichetele...</div>;
   }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="font-bold mb-2">My Parking Tickets</h1>
-        <p className="text-gray-600">View your ongoing tickets and payment history</p>
+        <h1 className="font-bold mb-2">Tichetele mele de parcare</h1>
+        <p className="text-gray-600">Vezi tichetele active și istoricul plăților</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          <h2 className="font-semibold mb-4">Ongoing Tickets</h2>
+          <h2 className="font-semibold mb-4">Tichete active</h2>
           {activeTickets.length > 0 ? (
             <div className="space-y-4">
               {activeTickets.map((ticket) => {
@@ -132,14 +132,14 @@ export function Tickets() {
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         isExpiringSoon ? 'bg-orange-200 text-orange-800' : 'bg-green-200 text-green-800'
-                      }`}>Active</span>
+                      }`}>Activ</span>
                     </div>
 
                     <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Clock className={`w-5 h-5 ${isExpiringSoon ? 'text-orange-600' : 'text-green-600'}`} />
-                          <span className="font-semibold">Time Remaining:</span>
+                          <span className="font-semibold">Timp rămas:</span>
                         </div>
                         <span className={`font-mono font-bold text-lg ${isExpiringSoon ? 'text-orange-700' : 'text-green-700'}`}>
                           {remainingTime}
@@ -155,19 +155,19 @@ export function Tickets() {
 
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                       <div>
-                        <span className="text-sm text-gray-600">Started</span>
+                        <span className="text-sm text-gray-600">Început la</span>
                         <p className="font-medium">{new Date(ticket.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">Expires</span>
+                        <span className="text-sm text-gray-600">Expiră la</span>
                         <p className="font-medium">{new Date(ticket.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">Duration</span>
+                        <span className="text-sm text-gray-600">Durată</span>
                         <p className="font-medium">{Math.round(ticket.durationMinutes / 60 * 10) / 10}h</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">Total Paid</span>
+                        <span className="text-sm text-gray-600">Total plătit</span>
                         <p className="font-medium">${Number(ticket.totalCost).toFixed(2)}</p>
                       </div>
                     </div>
@@ -188,7 +188,7 @@ export function Tickets() {
                             onClick={() => setExtendingId(null)}
                             className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm"
                           >
-                            Cancel
+                            Anulează
                           </button>
                         </div>
                       ) : (
@@ -197,13 +197,13 @@ export function Tickets() {
                             onClick={() => setExtendingId(ticket.id)}
                             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                           >
-                            Extend Parking Time
+                            Extinde timpul de parcare
                           </button>
                           <button
                             onClick={() => handleEnd(ticket.id)}
                             className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                           >
-                            End Session
+                            Încheie sesiunea
                           </button>
                         </>
                       )}
@@ -215,9 +215,9 @@ export function Tickets() {
           ) : (
             <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
               <TicketIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">No ongoing parking tickets</p>
+              <p className="text-gray-600 mb-4">Niciun tichet de parcare activ</p>
               <a href="/" className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Buy Parking Ticket
+                Cumpără tichet de parcare
               </a>
             </div>
           )}
@@ -225,18 +225,18 @@ export function Tickets() {
 
         <div className="md:col-span-1 space-y-4">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="font-semibold mb-4">Quick Stats</h3>
+            <h3 className="font-semibold mb-4">Statistici rapide</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Active Tickets</p>
+                <p className="text-sm text-gray-600 mb-1">Tichete active</p>
                 <p className="font-bold text-green-600">{activeTickets.length}</p>
               </div>
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-1">Total Tickets</p>
+                <p className="text-sm text-gray-600 mb-1">Total tichete</p>
                 <p className="font-bold">{activeTickets.length + completedTickets.length}</p>
               </div>
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-1">Total Spent</p>
+                <p className="text-sm text-gray-600 mb-1">Total cheltuit</p>
                 <p className="font-bold">
                   ${payments.reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}
                 </p>
@@ -248,16 +248,16 @@ export function Tickets() {
 
       {/* Payment History */}
       <div className="mt-8">
-        <h2 className="font-semibold mb-4">Payment History</h2>
+        <h2 className="font-semibold mb-4">Istoric plăți</h2>
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Transaction</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Dată</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Tranzacție</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Plată</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Sumă</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -292,7 +292,7 @@ export function Tickets() {
             </table>
           </div>
           {payments.length === 0 && (
-            <div className="p-8 text-center text-gray-500">No payment history yet</div>
+            <div className="p-8 text-center text-gray-500">Niciun istoric de plăți</div>
           )}
         </div>
       </div>

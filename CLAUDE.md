@@ -4,6 +4,8 @@
 
 A full-stack parking reservation web app with interactive map UI, built as a React frontend + Spring Boot backend monorepo. Users can register, manage vehicles, browse parking areas on a map, buy tickets, make reservations, and send support messages.
 
+**UI Language:** All frontend user-facing text is in Romanian.
+
 ---
 
 ## Frontend
@@ -262,6 +264,8 @@ backend/src/main/java/com/parkingapp/
 ### API Endpoints
 
 Base URL: `http://localhost:4000/api/v1`
+
+> **Note:** `frontend/src/app/lib/api.ts` currently has `baseURL: 'http://localhost:45678/api/v1'` (non-standard port from branch `vl/route-redirect`). Change back to port `4000` for normal development.
 
 #### Users
 | Method | Path | Auth | Description |

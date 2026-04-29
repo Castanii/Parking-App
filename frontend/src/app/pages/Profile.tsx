@@ -28,7 +28,7 @@ export function Profile() {
       const data = await getVehicles(user.id);
       setVehicles(data);
     } catch {
-      setError('Failed to load vehicles');
+      setError('Nu s-au putut încărca vehiculele');
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export function Profile() {
       }
       fetchVehicles();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to add vehicle');
+      setError(err.response?.data?.message || 'Nu s-a putut adăuga vehiculul');
     }
   };
 
@@ -64,7 +64,7 @@ export function Profile() {
       setForm(emptyForm);
       fetchVehicles();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update vehicle');
+      setError(err.response?.data?.message || 'Nu s-a putut actualiza vehiculul');
     }
   };
 
@@ -75,7 +75,7 @@ export function Profile() {
       await deleteVehicle(id, user.id);
       fetchVehicles();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete vehicle');
+      setError(err.response?.data?.message || 'Nu s-a putut șterge vehiculul');
     }
   };
 
@@ -94,27 +94,27 @@ export function Profile() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {returnTo && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-          <span className="text-sm text-blue-700 font-medium">Add a vehicle below — you'll be sent back to complete your purchase.</span>
+          <span className="text-sm text-blue-700 font-medium">Adaugă un vehicul mai jos — vei fi trimis înapoi pentru a finaliza achiziția.</span>
           <button onClick={() => navigate(returnTo)} className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-            <ArrowLeft className="w-3 h-3" /> Back
+            <ArrowLeft className="w-3 h-3" /> Înapoi
           </button>
         </div>
       )}
       <div className="mb-8">
-        <h1 className="font-bold mb-2">My Profile</h1>
-        <p className="text-gray-600">Manage your vehicles and account settings</p>
+        <h1 className="font-bold mb-2">Profilul meu</h1>
+        <p className="text-gray-600">Gestionează vehiculele și setările contului</p>
       </div>
 
       {/* User Info */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h2 className="font-semibold mb-4">Account Information</h2>
+        <h2 className="font-semibold mb-4">Informații cont</h2>
         <div className="space-y-4">
           <div>
             <label className="text-sm text-gray-600">Email</label>
             <p className="font-medium">{user?.email}</p>
           </div>
           <div>
-            <label className="text-sm text-gray-600">Member Since</label>
+            <label className="text-sm text-gray-600">Membru din</label>
             <p className="font-medium">
               {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
             </p>
@@ -131,13 +131,13 @@ export function Profile() {
       {/* My Vehicles */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">My Vehicles</h2>
+          <h2 className="font-semibold">Vehiculele mele</h2>
           <button
             onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); setForm(emptyForm); }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Vehicle
+            Adaugă vehicul
           </button>
         </div>
 
@@ -147,12 +147,12 @@ export function Profile() {
             setForm={setForm}
             onSubmit={handleAdd}
             onCancel={() => { setShowAddForm(false); setForm(emptyForm); }}
-            submitLabel="Add Vehicle"
+            submitLabel="Adaugă vehicul"
           />
         )}
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading vehicles...</div>
+          <div className="py-8 text-center text-gray-500">Se încarcă vehiculele...</div>
         ) : (
           <div className="space-y-3">
             {vehicles.map((v) =>
@@ -163,7 +163,7 @@ export function Profile() {
                     setForm={setForm}
                     onSubmit={() => handleUpdate(v.id)}
                     onCancel={cancelEdit}
-                    submitLabel="Save Changes"
+                    submitLabel="Salvează modificările"
                   />
                 </div>
               ) : (
@@ -179,7 +179,7 @@ export function Profile() {
                       <div>
                         <h3 className="font-semibold">{v.licensePlate}</h3>
                         <p className="text-sm text-gray-600">
-                          Category {v.vehicleCategory} {v.electric ? '• Electric' : ''}
+                          Categorie {v.vehicleCategory} {v.electric ? '• Electric' : ''}
                         </p>
                       </div>
                     </div>
@@ -204,7 +204,7 @@ export function Profile() {
               )
             )}
             {vehicles.length === 0 && !loading && (
-              <div className="py-8 text-center text-gray-500">No vehicles added yet</div>
+              <div className="py-8 text-center text-gray-500">Niciun vehicul adăugat</div>
             )}
           </div>
         )}
@@ -230,7 +230,7 @@ function VehicleForm({
     <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label className="block text-sm mb-1">License Plate *</label>
+          <label className="block text-sm mb-1">Număr înmatriculare *</label>
           <input
             type="text"
             value={form.licensePlate}
@@ -240,7 +240,7 @@ function VehicleForm({
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Category *</label>
+          <label className="block text-sm mb-1">Categorie *</label>
           <select
             value={form.vehicleCategory}
             onChange={(e) => setForm({ ...form, vehicleCategory: e.target.value })}
@@ -248,7 +248,7 @@ function VehicleForm({
           >
             <option value="A">A (Compact)</option>
             <option value="B">B (Standard)</option>
-            <option value="C1">C1 (Large)</option>
+            <option value="C1">C1 (Mare)</option>
           </select>
         </div>
         <div className="flex items-end">
@@ -259,7 +259,7 @@ function VehicleForm({
               onChange={(e) => setForm({ ...form, isElectric: e.target.checked })}
               className="w-4 h-4 rounded"
             />
-            <span className="text-sm">Electric Vehicle</span>
+            <span className="text-sm">Vehicul electric</span>
           </label>
         </div>
       </div>
@@ -274,7 +274,7 @@ function VehicleForm({
           onClick={onCancel}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          Cancel
+          Anulează
         </button>
       </div>
     </div>
